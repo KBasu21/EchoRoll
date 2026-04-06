@@ -1,0 +1,153 @@
+
+> Configure project :app
+WARNING: The option setting 'android.usesSdkInManifest.disallowed=false' is deprecated.
+The current default is 'true'.
+It will be removed in version 10.0 of the Android Gradle plugin.
+WARNING: The option setting 'android.sdk.defaultTargetSdkToCompileSdkIfUnset=false' is deprecated.
+The current default is 'true'.
+It will be removed in version 10.0 of the Android Gradle plugin.
+WARNING: The option setting 'android.enableAppCompileTimeRClass=false' is deprecated.
+The current default is 'true'.
+It will be removed in version 10.0 of the Android Gradle plugin.
+WARNING: The option setting 'android.builtInKotlin=false' is deprecated.
+The current default is 'true'.
+It will be removed in version 10.0 of the Android Gradle plugin.
+WARNING: The option setting 'android.newDsl=false' is deprecated.
+The current default is 'true'.
+It will be removed in version 10.0 of the Android Gradle plugin.
+WARNING: The option setting 'android.r8.optimizedResourceShrinking=false' is deprecated.
+The current default is 'true'.
+It will be removed in version 10.0 of the Android Gradle plugin.
+WARNING: The option setting 'android.defaults.buildfeatures.resvalues=true' is deprecated.
+The current default is 'false'.
+It will be removed in version 10.0 of the Android Gradle plugin.
+WARNING: The option setting 'android.useAndroidX=false' is deprecated.
+The current default is 'true'.
+It will be removed in version 10.0 of the Android Gradle plugin.
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:checkDebugDuplicateClasses FAILED
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:checkDebugDuplicateClasses'.
+> Configuration `:app:debugRuntimeClasspath` contains AndroidX dependencies, but the `android.useAndroidX` property is not enabled, which may cause runtime issues.
+  Set `android.useAndroidX=true` in the `gradle.properties` file and retry.
+  The following AndroidX dependencies are detected:
+  :app:debugRuntimeClasspath -> androidx.compose.ui:ui-tooling:1.7.5
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.ui:ui-tooling-android:1.7.5
+  :app:debugRuntimeClasspath -> androidx.activity:activity-compose:1.9.3
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.ui:ui-android:1.7.5 -> androidx.activity:activity-ktx:1.9.3
+  :app:debugRuntimeClasspath -> androidx.compose.ui:ui-test-manifest:1.7.5 -> androidx.activity:activity:1.9.3
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.material3:material3-android:1.3.1 -> androidx.annotation:annotation:1.8.1
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.material3:material3-android:1.3.1 -> androidx.annotation:annotation:1.8.1 -> androidx.annotation:annotation-jvm:1.8.1
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.material3:material3-android:1.3.1 -> androidx.collection:collection:1.4.4
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.material3:material3-android:1.3.1 -> androidx.collection:collection:1.4.4 -> androidx.collection:collection-jvm:1.4.4
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.ui:ui-unit-android:1.7.5 -> androidx.collection:collection-ktx:1.4.4
+  :app:debugRuntimeClasspath -> androidx.work:work-runtime-ktx:2.9.0 -> androidx.work:work-runtime:2.9.0 -> androidx.core:core:1.15.0
+  :app:debugRuntimeClasspath -> androidx.work:work-runtime-ktx:2.9.0 -> androidx.work:work-runtime:2.9.0 -> androidx.annotation:annotation-experimental:1.4.1
+  :app:debugRuntimeClasspath -> androidx.work:work-runtime-ktx:2.9.0 -> androidx.work:work-runtime:2.9.0 -> androidx.core:core:1.15.0 -> androidx.concurrent:concurrent-futures:1.1.0
+  :app:debugRuntimeClasspath -> androidx.work:work-runtime-ktx:2.9.0 -> androidx.work:work-runtime:2.9.0 -> androidx.core:core:1.15.0 -> androidx.interpolator:interpolator:1.0.0
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.material:material-android:1.7.5 -> androidx.lifecycle:lifecycle-runtime:2.8.7
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.material:material-android:1.7.5 -> androidx.lifecycle:lifecycle-runtime:2.8.7 -> androidx.lifecycle:lifecycle-runtime-android:2.8.7
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.material:material-android:1.7.5 -> androidx.savedstate:savedstate:1.2.1 -> androidx.arch.core:core-common:2.2.0
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.foundation:foundation-android:1.7.5 -> androidx.emoji2:emoji2:1.3.0 -> androidx.lifecycle:lifecycle-process:2.8.7 -> androidx.lifecycle:lifecycle-livedata-core:2.8.7 -> androidx.arch.core:core-runtime:2.2.0
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.material:material-android:1.7.5 -> androidx.savedstate:savedstate:1.2.1 -> androidx.lifecycle:lifecycle-common:2.8.7
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.material:material-android:1.7.5 -> androidx.savedstate:savedstate:1.2.1 -> androidx.lifecycle:lifecycle-common:2.8.7 -> androidx.lifecycle:lifecycle-common-jvm:2.8.7
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.material3:material3-android:1.3.1 -> androidx.lifecycle:lifecycle-common-java8:2.8.7
+  :app:debugRuntimeClasspath -> androidx.work:work-runtime-ktx:2.9.0 -> androidx.work:work-runtime:2.9.0 -> androidx.lifecycle:lifecycle-livedata:2.8.7
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.foundation:foundation-android:1.7.5 -> androidx.emoji2:emoji2:1.3.0 -> androidx.lifecycle:lifecycle-process:2.8.7 -> androidx.lifecycle:lifecycle-livedata-core:2.8.7
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.foundation:foundation-android:1.7.5 -> androidx.emoji2:emoji2:1.3.0 -> androidx.lifecycle:lifecycle-process:2.8.7 -> androidx.lifecycle:lifecycle-livedata-core-ktx:2.8.7
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.foundation:foundation-android:1.7.5 -> androidx.emoji2:emoji2:1.3.0 -> androidx.lifecycle:lifecycle-process:2.8.7 -> androidx.lifecycle:lifecycle-runtime-compose:2.8.7
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.foundation:foundation-android:1.7.5 -> androidx.emoji2:emoji2:1.3.0 -> androidx.lifecycle:lifecycle-process:2.8.7 -> androidx.lifecycle:lifecycle-runtime-compose:2.8.7 -> androidx.lifecycle:lifecycle-runtime-compose-android:2.8.7
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.runtime:runtime:1.7.5
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.runtime:runtime-android:1.7.5
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.runtime:runtime-saveable:1.7.5
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.runtime:runtime-saveable-android:1.7.5
+  :app:debugRuntimeClasspath -> androidx.lifecycle:lifecycle-runtime-ktx:2.8.7
+  :app:debugRuntimeClasspath -> androidx.lifecycle:lifecycle-runtime-ktx:2.8.7 -> androidx.lifecycle:lifecycle-runtime-ktx-android:2.8.7
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.material:material-android:1.7.5 -> androidx.lifecycle:lifecycle-viewmodel:2.8.7
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.material:material-android:1.7.5 -> androidx.lifecycle:lifecycle-viewmodel:2.8.7 -> androidx.lifecycle:lifecycle-viewmodel-android:2.8.7
+  :app:debugRuntimeClasspath -> androidx.work:work-runtime-ktx:2.9.0 -> androidx.work:work-runtime:2.9.0 -> androidx.lifecycle:lifecycle-service:2.8.7
+  :app:debugRuntimeClasspath -> androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7
+  :app:debugRuntimeClasspath -> androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7 -> androidx.lifecycle:lifecycle-viewmodel-compose-android:2.8.7
+  :app:debugRuntimeClasspath -> androidx.compose.ui:ui:1.7.5
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.ui:ui-android:1.7.5
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.ui:ui-android:1.7.5 -> androidx.autofill:autofill:1.0.0
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.ui:ui-geometry:1.7.5
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.ui:ui-geometry-android:1.7.5
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.ui:ui-util:1.7.5
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.ui:ui-util-android:1.7.5
+  :app:debugRuntimeClasspath -> androidx.compose.ui:ui-graphics:1.7.5
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.ui:ui-graphics-android:1.7.5
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.ui:ui-unit:1.7.5
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.ui:ui-unit-android:1.7.5
+  :app:debugRuntimeClasspath -> androidx.compose.ui:ui-test-manifest:1.7.5
+  :app:debugRuntimeClasspath -> androidx.compose.ui:ui-tooling-preview:1.7.5
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.ui:ui-tooling-preview-android:1.7.5
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.ui:ui-text:1.7.5
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.ui:ui-text-android:1.7.5
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.foundation:foundation-android:1.7.5 -> androidx.emoji2:emoji2:1.3.0
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.foundation:foundation-android:1.7.5 -> androidx.emoji2:emoji2:1.3.0 -> androidx.lifecycle:lifecycle-process:2.8.7
+  :app:debugRuntimeClasspath -> androidx.work:work-runtime-ktx:2.9.0 -> androidx.work:work-runtime:2.9.0 -> androidx.startup:startup-runtime:1.1.1
+  :app:debugRuntimeClasspath -> androidx.compose.ui:ui-test-manifest:1.7.5 -> androidx.activity:activity:1.9.3 -> androidx.tracing:tracing:1.2.0
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.foundation:foundation-android:1.7.5 -> androidx.emoji2:emoji2:1.3.0 -> androidx.lifecycle:lifecycle-process:2.8.7 -> androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.foundation:foundation-android:1.7.5 -> androidx.emoji2:emoji2:1.3.0 -> androidx.lifecycle:lifecycle-process:2.8.7 -> androidx.lifecycle:lifecycle-viewmodel-savedstate:2.8.7
+  :app:debugRuntimeClasspath -> androidx.core:core-ktx:1.15.0
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.material:material-android:1.7.5 -> androidx.savedstate:savedstate:1.2.1
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.material:material-android:1.7.5 -> androidx.savedstate:savedstate:1.2.1 -> androidx.savedstate:savedstate-ktx:1.2.1
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.ui:ui-tooling-data:1.7.5
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.ui:ui-tooling-data-android:1.7.5
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.ui:ui-graphics-android:1.7.5 -> androidx.graphics:graphics-path:1.0.1
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.ui:ui-android:1.7.5 -> androidx.customview:customview-poolingcontainer:1.0.0
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.material:material-android:1.7.5 -> androidx.lifecycle:lifecycle-runtime:2.8.7 -> androidx.lifecycle:lifecycle-runtime-android:2.8.7 -> androidx.profileinstaller:profileinstaller:1.3.1
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.foundation:foundation:1.7.5
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.foundation:foundation-android:1.7.5
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.animation:animation:1.7.5
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.animation:animation-android:1.7.5
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.animation:animation-core:1.7.5
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.animation:animation-core-android:1.7.5
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.foundation:foundation-layout:1.7.5
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.foundation:foundation-layout-android:1.7.5
+  :app:debugRuntimeClasspath -> androidx.work:work-runtime-ktx:2.9.0 -> androidx.work:work-runtime:2.9.0 -> androidx.core:core:1.15.0 -> androidx.versionedparcelable:versionedparcelable:1.1.1
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.material:material:1.7.5
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.material:material-android:1.7.5
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.material:material-ripple:1.7.5
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.material:material-ripple-android:1.7.5
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00
+  :app:debugRuntimeClasspath -> androidx.compose.material:material-icons-extended:1.7.5
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.material:material-icons-extended-android:1.7.5
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.material:material-icons-core:1.7.5
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.material:material-icons-core-android:1.7.5
+  :app:debugRuntimeClasspath -> androidx.compose.material3:material3:1.3.1
+  :app:debugRuntimeClasspath -> androidx.compose:compose-bom:2024.11.00 -> androidx.compose.material3:material3-android:1.3.1
+  :app:debugRuntimeClasspath -> androidx.room:room-runtime:2.6.1
+  :app:debugRuntimeClasspath -> androidx.room:room-runtime:2.6.1 -> androidx.room:room-common:2.6.1
+  :app:debugRuntimeClasspath -> androidx.room:room-ktx:2.6.1
+  :app:debugRuntimeClasspath -> androidx.room:room-runtime:2.6.1 -> androidx.sqlite:sqlite:2.4.0
+  :app:debugRuntimeClasspath -> androidx.work:work-runtime-ktx:2.9.0 -> androidx.work:work-runtime:2.9.0 -> androidx.sqlite:sqlite-framework:2.4.0
+  :app:debugRuntimeClasspath -> androidx.work:work-runtime-ktx:2.9.0
+  :app:debugRuntimeClasspath -> androidx.work:work-runtime-ktx:2.9.0 -> androidx.work:work-runtime:2.9.0
+  :app:debugRuntimeClasspath -> androidx.datastore:datastore-preferences:1.0.0
+  :app:debugRuntimeClasspath -> androidx.datastore:datastore-preferences:1.0.0 -> androidx.datastore:datastore:1.0.0
+  :app:debugRuntimeClasspath -> androidx.datastore:datastore-preferences:1.0.0 -> androidx.datastore:datastore:1.0.0 -> androidx.datastore:datastore-core:1.0.0
+  :app:debugRuntimeClasspath -> androidx.datastore:datastore-preferences:1.0.0 -> androidx.datastore:datastore-preferences-core:1.0.0
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to generate a Build Scan (Powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 557ms
+1 actionable task: 1 executed

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="Theme.EchoRollV2" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <style name="CustomTimePickerTheme" parent="android:Theme.DeviceDefault.Dialog">
+        <item name="android:colorAccent">#3498DB</item>
+    </style>
+</resources>

@@ -1,0 +1,110 @@
+Initialized native services in: /Users/kumareshbasu/.gradle/native
+Initialized jansi services in: /Users/kumareshbasu/.gradle/native
+The client will now receive all logging from the daemon (pid: 22806). The daemon log file: /Users/kumareshbasu/.gradle/daemon/9.1.0/daemon-22806.out.log
+Starting 16th build in daemon [uptime: 2 hrs 46 mins 38.013 secs, performance: 99%, GC rate: 0.00/s, heap usage: 3% of 2 GiB]
+Using 10 worker leases.
+Invalidating in-memory cache of /Users/kumareshbasu/App Development/EchoRollV2/.gradle/9.1.0/fileHashes/fileHashes.bin
+Invalidating in-memory cache of /Users/kumareshbasu/App Development/EchoRollV2/.gradle/buildOutputCleanup/outputFiles.bin
+Invalidating in-memory cache of /Users/kumareshbasu/App Development/EchoRollV2/.gradle/9.1.0/fileHashes/resourceHashesCache.bin
+Now considering [/Users/kumareshbasu/App Development/EchoRollV2] as hierarchies to watch
+Watching the file system is configured to be enabled if available
+File system watching is active
+Invalidating in-memory cache of /Users/kumareshbasu/App Development/EchoRollV2/.gradle/9.1.0/checksums/md5-checksums.bin
+Invalidating in-memory cache of /Users/kumareshbasu/App Development/EchoRollV2/.gradle/9.1.0/checksums/sha1-checksums.bin
+Invalidating in-memory cache of /Users/kumareshbasu/App Development/EchoRollV2/.gradle/9.1.0/checksums/sha256-checksums.bin
+Invalidating in-memory cache of /Users/kumareshbasu/App Development/EchoRollV2/.gradle/9.1.0/checksums/sha512-checksums.bin
+Starting Build
+Invalidating in-memory cache of /Users/kumareshbasu/.gradle/caches/9.1.0/fileHashes/kotlinDslCompileAvoidanceClasspathHashCache.bin
+Invalidating in-memory cache of /Users/kumareshbasu/.gradle/caches/9.1.0/fileHashes/fileHashes.bin
+Invalidating in-memory cache of /Users/kumareshbasu/.gradle/caches/9.1.0/fileHashes/resourceHashesCache.bin
+Invalidating in-memory cache of /Users/kumareshbasu/.gradle/caches/journal-1/file-access.bin
+Settings evaluated using settings file '/Users/kumareshbasu/App Development/EchoRollV2/settings.gradle.kts'.
+Projects loaded. Root project using build file '/Users/kumareshbasu/App Development/EchoRollV2/build.gradle.kts'.
+Included projects: [root project 'EchoRoll V.2', project ':app']
+
+> Configure project :
+Evaluating root project 'EchoRoll V.2' using build file '/Users/kumareshbasu/App Development/EchoRollV2/build.gradle.kts'.
+Resolved plugin [id: 'com.android.application', version: '9.0.1', apply: false]
+Resolved plugin [id: 'org.jetbrains.kotlin.android', version: '2.2.10', apply: false]
+Resolved plugin [id: 'org.jetbrains.kotlin.plugin.compose', version: '2.2.10', apply: false]
+Resolved plugin [id: 'com.google.devtools.ksp', version: '2.3.2', apply: false]
+
+> Configure project :app
+Evaluating project ':app' using build file '/Users/kumareshbasu/App Development/EchoRollV2/app/build.gradle.kts'.
+Resolved plugin [id: 'com.android.application', version: '9.0.1']
+Resolved plugin [id: 'org.jetbrains.kotlin.android', version: '2.2.10']
+Resolved plugin [id: 'org.jetbrains.kotlin.plugin.compose', version: '2.2.10']
+Resolved plugin [id: 'com.google.devtools.ksp', version: '2.3.2']
+WARNING: The option setting 'android.usesSdkInManifest.disallowed=false' is deprecated.
+The current default is 'true'.
+It will be removed in version 10.0 of the Android Gradle plugin.
+WARNING: The option setting 'android.sdk.defaultTargetSdkToCompileSdkIfUnset=false' is deprecated.
+The current default is 'true'.
+It will be removed in version 10.0 of the Android Gradle plugin.
+WARNING: The option setting 'android.enableAppCompileTimeRClass=false' is deprecated.
+The current default is 'true'.
+It will be removed in version 10.0 of the Android Gradle plugin.
+WARNING: The option setting 'android.builtInKotlin=false' is deprecated.
+The current default is 'true'.
+It will be removed in version 10.0 of the Android Gradle plugin.
+WARNING: The option setting 'android.newDsl=false' is deprecated.
+The current default is 'true'.
+It will be removed in version 10.0 of the Android Gradle plugin.
+WARNING: The option setting 'android.r8.optimizedResourceShrinking=false' is deprecated.
+The current default is 'true'.
+It will be removed in version 10.0 of the Android Gradle plugin.
+WARNING: The option setting 'android.defaults.buildfeatures.resvalues=true' is deprecated.
+The current default is 'false'.
+It will be removed in version 10.0 of the Android Gradle plugin.
+WARNING: The option setting 'android.useAndroidX=false' is deprecated.
+The current default is 'true'.
+It will be removed in version 10.0 of the Android Gradle plugin.
+Using default execution profile
+Build f25e9792-d81a-4331-a329-49dcd13a3e85 is started
+Using Kotlin Gradle Plugin gradle813 variant
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+Detected Android Gradle Plugin compose compiler configuration
+Detected Android Gradle Plugin compose compiler configuration
+Detected Android Gradle Plugin compose compiler configuration
+Detected Android Gradle Plugin compose compiler configuration
+All projects evaluated.
+Task name matched 'assembleDebug'
+Selected primary task 'assembleDebug' from project :
+Adding -Xuse-inline-scopes-numbers Kotlin compiler flag for task :app:compileDebugKotlin
+Tasks to be executed: [task ':app:preBuild', task ':app:preDebugBuild', task ':app:mergeDebugNativeDebugMetadata', task ':app:checkKotlinGradlePluginConfigurationErrors', task ':app:checkDebugAarMetadata', task ':app:processDebugNavigationResources', task ':app:compileDebugNavigationResources', task ':app:generateDebugResValues', task ':app:mapDebugSourceSetPaths', task ':app:generateDebugResources', task ':app:mergeDebugResources', task ':app:packageDebugResources', task ':app:parseDebugLocalResources', task ':app:createDebugCompatibleScreenManifests', task ':app:extractDeepLinksDebug', task ':app:processDebugMainManifest', task ':app:processDebugManifest', task ':app:processDebugManifestForPackage', task ':app:processDebugResources', task ':app:kspDebugKotlin', task ':app:compileDebugKotlin', task ':app:javaPreCompileDebug', task ':app:compileDebugJavaWithJavac', task ':app:generateDebugAssets', task ':app:mergeDebugAssets', task ':app:compressDebugAssets', task ':app:processDebugJavaRes', task ':app:mergeDebugJavaResource', task ':app:checkDebugDuplicateClasses', task ':app:desugarDebugFileDependencies', task ':app:mergeExtDexDebug', task ':app:mergeLibDexDebug', task ':app:dexBuilderDebug', task ':app:mergeProjectDexDebug', task ':app:mergeDebugJniLibFolders', task ':app:mergeDebugNativeLibs', task ':app:stripDebugDebugSymbols', task ':app:validateSigningDebug', task ':app:writeDebugAppMetadata', task ':app:writeDebugSigningConfigVersions', task ':app:packageDebug', task ':app:createDebugApkListingFileRedirect', task ':app:assembleDebug']
+Tasks that were excluded: []
+Resolve mutations for :app:preBuild (Thread[#1598,Execution worker,5,main]) started.
+:app:preBuild (Thread[#1598,Execution worker,5,main]) started.
+Invalidating in-memory cache of /Users/kumareshbasu/App Development/EchoRollV2/.gradle/9.1.0/executionHistory/executionHistory.bin
+
+> Task :app:preBuild UP-TO-DATE
+Skipping task ':app:preBuild' as it has no actions.
+Resolve mutations for :app:preDebugBuild (Thread[#1598,Execution worker,5,main]) started.
+:app:preDebugBuild (Thread[#1602,Execution worker Thread 5,5,main]) started.
+
+> Task :app:preDebugBuild UP-TO-DATE
+Skipping task ':app:preDebugBuild' as it has no actions.
+Resolve mutations for :app:mergeDebugNativeDebugMetadata (Thread[#1602,Execution worker Thread 5,5,main]) started.
+:app:mergeDebugNativeDebugMetadata (Thread[#1602,Execution worker Thread 5,5,main]) started.
+
+> Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
+Skipping task ':app:mergeDebugNativeDebugMetadata' as it has no source files and no previous output files.
+Resolve mutations for :app:checkKotlinGradlePluginConfigurationErrors (Thread[#1602,Execution worker Thread 5,5,main]) started.
+:app:checkKotlinGradlePluginConfigurationErrors (Thread[#1602,Execution worker Thread 5,5,main]) started.
+
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+Skipping task ':app:checkKotlinGradlePluginConfigurationErrors' as task onlyIf 'errorDiagnostics are present' is false.
+Resolve mutations for :app:checkDebugAarMetadata (Thread[#1602,Execution worker Thread 5,5,main]) started.
+:app:checkDebugAarMetadata (Thread[#1602,Execution worker Thread 5,5,main]) started.
+
+> Task :app:checkDebugAarMetadata FAILED
+Build f25e9792-d81a-4331-a329-49dcd13a3e85 is closed
+1 actionable task: 1 executed
+Watched directory hierarchies: [/Users/kumareshbasu/App Development/EchoRollV2]

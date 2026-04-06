@@ -1,0 +1,23 @@
+e: file:///Users/kumareshbasu/App%20Development/EchoRollV2/app/src/main/java/com/example/echorollv2/MainActivity.kt:454:17 Unresolved reference 'colors'.
+e: file:///Users/kumareshbasu/App%20Development/EchoRollV2/app/src/main/java/com/example/echorollv2/MainActivity.kt:470:98 Unresolved reference 'colors'.
+e: file:///Users/kumareshbasu/App%20Development/EchoRollV2/app/src/main/java/com/example/echorollv2/MainActivity.kt:483:56 Unresolved reference 'colors'.
+e: file:///Users/kumareshbasu/App%20Development/EchoRollV2/app/src/main/java/com/example/echorollv2/MainActivity.kt:485:69 Unresolved reference 'colors'.
+e: file:///Users/kumareshbasu/App%20Development/EchoRollV2/app/src/main/java/com/example/echorollv2/MainActivity.kt:502:55 Unresolved reference 'colors'.
+e: file:///Users/kumareshbasu/App%20Development/EchoRollV2/app/src/main/java/com/example/echorollv2/MainActivity.kt:519:55 Unresolved reference 'colors'.
+e: file:///Users/kumareshbasu/App%20Development/EchoRollV2/app/src/main/java/com/example/echorollv2/MainActivity.kt:523:85 Unresolved reference 'colors'.
+e: file:///Users/kumareshbasu/App%20Development/EchoRollV2/app/src/main/java/com/example/echorollv2/MainActivity.kt:533:29 Unresolved reference 'colors'.
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileDebugKotlin'.
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+   > Compilation error. See log for more details
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to generate a Build Scan (Powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 3s
