@@ -203,8 +203,6 @@ fun AddSubjectScreen(
             CustomInputField("Enter Professor (Optional)", professorName, "E.g., Dr. Smith") { professorName = it }
 
             // 4. Number Steppers
-            StepperRow("Classes attended", "Attended", attended, PrimaryBlue) { attended = it }
-            StepperRow("Classes missed", "Missed", missed, PrimaryRed) { missed = it }
             StepperRow("% of classes required", "Required", required, TextWhite, isPercentage = true) { required = it }
 
             // 5. Weekly Schedule (Expandable)
