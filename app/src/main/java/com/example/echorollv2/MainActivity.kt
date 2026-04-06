@@ -354,6 +354,24 @@ fun TodayScreen(
     val dayName = SimpleDateFormat("EEEE", Locale.getDefault()).format(selectedDate)
     val todayDateStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
     val isEditable = dateFormatted == todayDateStr
+
+    val isFutureDate = remember(selectedDate) {
+        val today = Calendar.getInstance().apply {
+            time = Date()
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        val target = Calendar.getInstance().apply {
+            time = selectedDate
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        target.after(today)
+    }
     
     val routines by viewModel.allRoutines.collectAsState()
     val attendanceRecords by viewModel.getAttendanceRecordsForDate(dateFormatted).collectAsState(initial = emptyList())
@@ -402,21 +420,41 @@ fun TodayScreen(
                 Text("No classes scheduled!", color = colors.textSecondary)
             }
         } else {
+            val displayRoutines = remember(todayRoutines, attendanceRecords) {
+                val usedRecordIds = mutableSetOf<Int>()
+                todayRoutines.map { routine ->
+                    var record = attendanceRecords.find { it.routineId == routine.id && it.id !in usedRecordIds }
+
+                    if (record == null) {
+                        record = attendanceRecords.find {
+                            it.subjectCode == routine.subjectCode &&
+                            it.routineId == -1 &&
+                            it.id !in usedRecordIds
+                        }
+                    }
+
+                    if (record != null) {
+                        usedRecordIds.add(record.id)
+                    }
+                    routine to record
+                }
+            }
+
             LazyColumn(
                 state = scrollState,
                 modifier = Modifier.weight(1f).padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                items(todayRoutines) { routine ->
+                items(displayRoutines) { (routine, record) ->
                     val subject = subjects.find { it.subjectCode == routine.subjectCode }
-                    val attendance = attendanceRecords.find { it.routineId == routine.id }
                     
                     if (subject != null) {
                         TodayClassCard(
                             subject = subject,
                             routine = routine,
-                            attendanceStatus = attendance?.status,
+                            attendanceStatus = record?.status,
                             isEditable = isEditable,
+                            isFuture = isFutureDate,
                             onMarkAttendance = { status ->
                                 viewModel.markAttendance(routine, status)
                             },
@@ -520,6 +558,7 @@ fun TodayClassCard(
     routine: RoutineEntity,
     attendanceStatus: String?,
     isEditable: Boolean,
+    isFuture: Boolean,
     onMarkAttendance: (String) -> Unit,
     onStickyNotesClick: () -> Unit
 ) {
@@ -636,7 +675,7 @@ fun TodayClassCard(
                         modifier = Modifier.fillMaxWidth().height(45.dp).background(colors.surfaceVariant, RoundedCornerShape(12.dp)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("Not Marked", color = Color.Gray, fontWeight = FontWeight.Medium, fontSize = 14.sp)
+                        Text(if (isFuture) "Unlocks on this day" else "Not Marked", color = Color.Gray, fontWeight = FontWeight.Medium, fontSize = 14.sp)
                     }
                 }
             } else {
