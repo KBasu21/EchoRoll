@@ -15,11 +15,17 @@ class UserPreferences(private val context: Context) {
         val SUBDIVISION_CODE = stringPreferencesKey("subdivision_code")
         val LATEST_VERSION_TAG = stringPreferencesKey("latest_version_tag")
         val LATEST_VERSION_URL = stringPreferencesKey("latest_version_url")
+        val DISMISSED_VERSION = stringPreferencesKey("dismissed_version")
     }
 
     val updateInfoFlow: Flow<Pair<String?, String?>> = context.dataStore.data
         .map { preferences ->
             preferences[LATEST_VERSION_TAG] to preferences[LATEST_VERSION_URL]
+        }
+
+    val dismissedVersionFlow: Flow<String?> = context.dataStore.data
+        .map { preferences ->
+            preferences[DISMISSED_VERSION]
         }
 
     suspend fun saveUpdateInfo(tag: String, url: String) {
@@ -33,6 +39,12 @@ class UserPreferences(private val context: Context) {
         context.dataStore.edit { preferences ->
             preferences.remove(LATEST_VERSION_TAG)
             preferences.remove(LATEST_VERSION_URL)
+        }
+    }
+
+    suspend fun saveDismissedVersion(tag: String) {
+        context.dataStore.edit { preferences ->
+            preferences[DISMISSED_VERSION] = tag
         }
     }
 

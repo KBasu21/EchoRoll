@@ -53,7 +53,8 @@ class EchoViewModel(
         // Initial check from cache (Offline Support)
         viewModelScope.launch {
             val (cachedTag, cachedUrl) = preferences.updateInfoFlow.first()
-            if (cachedTag != null && cachedUrl != null) {
+            val dismissedTag = preferences.dismissedVersionFlow.first()
+            if (cachedTag != null && cachedUrl != null && normalizeTag(cachedTag) != normalizeTag(dismissedTag)) {
                 if (isVersionNewer(BuildConfig.VERSION_NAME, cachedTag)) {
                     _latestRelease.value = GitHubRelease(
                         tagName = cachedTag,
@@ -73,10 +74,13 @@ class EchoViewModel(
             try {
                 val release = updateApi.getLatestRelease()
                 val currentVersion = BuildConfig.VERSION_NAME
+                val dismissedTag = preferences.dismissedVersionFlow.first()
                 
                 if (isVersionNewer(currentVersion, release.tagName)) {
                     _latestRelease.value = release
-                    _updateAvailable.value = true
+                    if (normalizeTag(release.tagName) != normalizeTag(dismissedTag)) {
+                        _updateAvailable.value = true
+                    }
                     // Cache it for offline use next time
                     preferences.saveUpdateInfo(release.tagName, release.htmlUrl)
                 } else {
@@ -87,6 +91,10 @@ class EchoViewModel(
                 // If offline, we stay with whatever the cache provided in init
             }
         }
+    }
+
+    private fun normalizeTag(tag: String?): String {
+        return tag?.trim()?.lowercase()?.removePrefix("v") ?: ""
     }
 
     private fun isVersionNewer(current: String, latest: String): Boolean {
@@ -108,6 +116,11 @@ class EchoViewModel(
 
     fun dismissUpdate() {
         _updateAvailable.value = false
+        _latestRelease.value?.let { release ->
+            viewModelScope.launch {
+                preferences.saveDismissedVersion(release.tagName)
+            }
+        }
     }
 
     // A live feed of all subjects to display on your Attendance Screen
