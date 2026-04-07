@@ -34,12 +34,14 @@ fun HolidaysScreen(
     holidays: List<HolidayEntity>,
     onNavigateBack: () -> Unit,
     onDeleteHoliday: (HolidayEntity) -> Unit,
+    onDeleteAllHolidays: () -> Unit,
     onAddManualHoliday: (String, String) -> Unit,
     onUpdateHoliday: (HolidayEntity) -> Unit
 ) {
     val colors = LocalAppColors.current
     var showAddDialog by remember { mutableStateOf(false) }
     var holidayToEdit by remember { mutableStateOf<HolidayEntity?>(null) }
+    var showDeleteAllDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -52,8 +54,15 @@ fun HolidaysScreen(
                     Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = colors.textPrimary)
                 }
                 Text("Holidays", color = colors.textPrimary, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                IconButton(onClick = { showAddDialog = true }) {
-                    Icon(Icons.Default.Add, contentDescription = "Add", tint = colors.textPrimary)
+                Row {
+                    if (holidays.isNotEmpty()) {
+                        IconButton(onClick = { showDeleteAllDialog = true }) {
+                            Icon(Icons.Default.Delete, contentDescription = "Clear All", tint = PrimaryRed)
+                        }
+                    }
+                    IconButton(onClick = { showAddDialog = true }) {
+                        Icon(Icons.Default.Add, contentDescription = "Add", tint = colors.textPrimary)
+                    }
                 }
             }
         },
@@ -197,6 +206,28 @@ fun HolidaysScreen(
                 },
                 dismissButton = {
                     TextButton(onClick = { holidayToEdit = null }) { Text("Cancel", color = colors.textSecondary) }
+                },
+                containerColor = colors.surfaceVariant
+            )
+        }
+
+        if (showDeleteAllDialog) {
+            AlertDialog(
+                onDismissRequest = { showDeleteAllDialog = false },
+                title = { Text("Clear All Holidays", color = colors.textPrimary) },
+                text = { Text("Are you sure you want to delete all holidays? This action cannot be undone.", color = colors.textPrimary) },
+                confirmButton = {
+                    TextButton(onClick = {
+                        onDeleteAllHolidays()
+                        showDeleteAllDialog = false
+                    }) {
+                        Text("Delete All", color = PrimaryRed)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDeleteAllDialog = false }) {
+                        Text("Cancel", color = colors.textSecondary)
+                    }
                 },
                 containerColor = colors.surfaceVariant
             )

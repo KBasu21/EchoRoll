@@ -21,11 +21,94 @@ import java.util.Locale
 import com.example.echorollv2.data.local.entity.HolidayEntity
 import com.example.echorollv2.data.network.HolidayApi
 import com.example.echorollv2.data.preferences.UserPreferences
+import com.example.echorollv2.data.network.GitHubRelease
+import com.example.echorollv2.data.network.UpdateApi
+import com.example.echorollv2.BuildConfig
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 
 class EchoViewModel(
     private val repository: EchoRepository,
     private val preferences: UserPreferences
 ) : ViewModel() {
+
+    private val _latestRelease = MutableStateFlow<GitHubRelease?>(null)
+    val latestRelease = _latestRelease.asStateFlow()
+
+    private val _updateAvailable = MutableStateFlow(false)
+    val updateAvailable = _updateAvailable.asStateFlow()
+
+    private val updateApi by lazy {
+        Retrofit.Builder()
+            .baseUrl("https://api.github.com/")
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(UpdateApi::class.java)
+    }
+
+    init {
+        // Initial check from cache (Offline Support)
+        viewModelScope.launch {
+            val (cachedTag, cachedUrl) = preferences.updateInfoFlow.first()
+            if (cachedTag != null && cachedUrl != null) {
+                if (isVersionNewer(BuildConfig.VERSION_NAME, cachedTag)) {
+                    _latestRelease.value = GitHubRelease(
+                        tagName = cachedTag,
+                        htmlUrl = cachedUrl,
+                        name = cachedTag,
+                        body = "A new update is available!",
+                        assets = emptyList()
+                    )
+                    _updateAvailable.value = true
+                }
+            }
+        }
+    }
+
+    fun checkForUpdates() {
+        viewModelScope.launch {
+            try {
+                val release = updateApi.getLatestRelease()
+                val currentVersion = BuildConfig.VERSION_NAME
+                
+                if (isVersionNewer(currentVersion, release.tagName)) {
+                    _latestRelease.value = release
+                    _updateAvailable.value = true
+                    // Cache it for offline use next time
+                    preferences.saveUpdateInfo(release.tagName, release.htmlUrl)
+                } else {
+                    _updateAvailable.value = false
+                    preferences.clearUpdateInfo()
+                }
+            } catch (e: Exception) {
+                // If offline, we stay with whatever the cache provided in init
+            }
+        }
+    }
+
+    private fun isVersionNewer(current: String, latest: String): Boolean {
+        return try {
+            val cur = current.trim().lowercase().removePrefix("v").split(".")
+            val lat = latest.trim().lowercase().removePrefix("v").split(".")
+            val maxLength = maxOf(cur.size, lat.size)
+            for (i in 0 until maxLength) {
+                val c = cur.getOrNull(i)?.toIntOrNull() ?: 0
+                val l = lat.getOrNull(i)?.toIntOrNull() ?: 0
+                if (l > c) return true
+                if (c > l) return false
+            }
+            false
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    fun dismissUpdate() {
+        _updateAvailable.value = false
+    }
 
     // A live feed of all subjects to display on your Attendance Screen
     val allSubjects: StateFlow<List<SubjectEntity>> = repository.allSubjects
@@ -34,6 +117,14 @@ class EchoViewModel(
     // NEW: Expose all routines for the Routine Screen
     val allRoutines: StateFlow<List<RoutineEntity>> = repository.allRoutines
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
+    // UI state for Attendance Screen tab
+    private val _selectedAttendanceTab = kotlinx.coroutines.flow.MutableStateFlow("Theory")
+    val selectedAttendanceTab: StateFlow<String> = _selectedAttendanceTab
+
+    fun setAttendanceTab(tab: String) {
+        _selectedAttendanceTab.value = tab
+    }
 
     fun getAttendanceRecordsForDate(date: String): Flow<List<AttendanceRecordEntity>> {
         return repository.getAttendanceRecordsForDate(date)
@@ -162,6 +253,12 @@ class EchoViewModel(
     fun deleteHoliday(holiday: HolidayEntity) {
         viewModelScope.launch {
             repository.deleteHoliday(holiday)
+        }
+    }
+
+    fun deleteAllHolidays() {
+        viewModelScope.launch {
+            repository.deleteAllHolidays()
         }
     }
 

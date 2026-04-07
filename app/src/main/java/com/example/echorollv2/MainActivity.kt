@@ -101,6 +101,7 @@ import com.example.echorollv2.services.NotificationHelper
 import com.example.echorollv2.ui.screens.setup.AddSubjectScreen
 import com.example.echorollv2.ui.screens.setup.DaySchedule
 import com.example.echorollv2.ui.theme.*
+import com.example.echorollv2.utils.DateTimeUtils
 import com.example.echorollv2.ui.viewmodels.EchoViewModel
 import com.example.echorollv2.ui.viewmodels.EchoViewModelFactory
 import kotlinx.coroutines.launch
@@ -129,8 +130,15 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         NotificationHelper.createNotificationChannel(this)
-        val workRequest = PeriodicWorkRequestBuilder<DailyCheckWorker>(1, TimeUnit.DAYS).build()
-        WorkManager.getInstance(this).enqueueUniquePeriodicWork("DailyCheck", ExistingPeriodicWorkPolicy.KEEP, workRequest)
+        val initialDelay = com.example.echorollv2.utils.DateTimeUtils.getDelayUntilNextSixAM()
+        val workRequest = PeriodicWorkRequestBuilder<DailyCheckWorker>(1, TimeUnit.DAYS)
+            .setInitialDelay(initialDelay, TimeUnit.MILLISECONDS)
+            .build()
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            "DailyCheck", 
+            androidx.work.ExistingPeriodicWorkPolicy.UPDATE, 
+            workRequest
+        )
 
         val database = EchoDatabase.getDatabase(this)
         val repository = EchoRepository(database.echoDao())
@@ -178,6 +186,53 @@ fun MainScreen(
     onThemeToggle: () -> Unit
 ) {
     val colors = LocalAppColors.current
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    // Trigger update check on startup
+    LaunchedEffect(Unit) {
+        viewModel.checkForUpdates()
+    }
+
+    // Update Dialog state
+    val updateAvailable by viewModel.updateAvailable.collectAsState()
+    val latestRelease by viewModel.latestRelease.collectAsState()
+
+    if (updateAvailable && latestRelease != null) {
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissUpdate() },
+            title = {
+                Column {
+                    Text("New Update Available!🚀", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    Text("Version ${latestRelease!!.tagName}", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            },
+            text = {
+                Column(modifier = Modifier.verticalScroll(rememberScrollState()).heightIn(max = 200.dp)) {
+                    Text(latestRelease!!.body, fontSize = 14.sp)
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(latestRelease!!.htmlUrl))
+                        context.startActivity(intent)
+                        viewModel.dismissUpdate()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    Text("Update Now", color = Color.White)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.dismissUpdate() }) {
+                    Text("Later", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            },
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            shape = RoundedCornerShape(16.dp)
+        )
+    }
+
     var currentScreen by remember { mutableStateOf("Today") }
     
     // Notification Intent Handler
@@ -331,6 +386,7 @@ fun MainScreen(
                     holidays = viewModel.allHolidays.collectAsState().value,
                     onNavigateBack = goBack,
                     onDeleteHoliday = { viewModel.deleteHoliday(it) },
+                    onDeleteAllHolidays = { viewModel.deleteAllHolidays() },
                     onAddManualHoliday = { date, name -> viewModel.addManualHoliday(date, name) },
                     onUpdateHoliday = { viewModel.saveHoliday(it) }
                 )
@@ -422,7 +478,7 @@ fun TodayScreen(
         } else {
             val displayRoutines = remember(todayRoutines, attendanceRecords) {
                 val usedRecordIds = mutableSetOf<Int>()
-                todayRoutines.map { routine ->
+                val matched = todayRoutines.map { routine ->
                     var record = attendanceRecords.find { it.routineId == routine.id && it.id !in usedRecordIds }
 
                     if (record == null) {
@@ -437,6 +493,24 @@ fun TodayScreen(
                         usedRecordIds.add(record.id)
                     }
                     routine to record
+                }
+
+                // Sorting logic:
+                // 1. Sort by start time initially
+                val sortedByTime = matched.sortedBy { (routine, _) -> 
+                    DateTimeUtils.timeToMinutes(routine.startTime) 
+                }
+
+                // 2. Check if all are marked
+                val allMarked = sortedByTime.all { it.second != null }
+
+                if (allMarked) {
+                    sortedByTime
+                } else {
+                    // 3. Move marked cards to the end
+                    val unmarked = sortedByTime.filter { it.second == null }
+                    val marked = sortedByTime.filter { it.second != null }
+                    unmarked + marked
                 }
             }
 
@@ -960,7 +1034,7 @@ fun AttendanceScreen(
     onThemeToggle: () -> Unit
 ) {
     val colors = LocalAppColors.current
-    var selectedTab by remember { mutableStateOf("Theory") }
+    val selectedTab by viewModel.selectedAttendanceTab.collectAsState()
     val subjects by viewModel.allSubjects.collectAsState()
 
     val displayDate = SimpleDateFormat("d MMM yyyy", Locale.getDefault()).format(Date())
@@ -1042,7 +1116,7 @@ fun AttendanceScreen(
                     modifier = Modifier
                         .weight(1f)
                         .background(if (selectedTab == tab) Color(0xFF444444) else Color.Transparent)
-                        .clickable { selectedTab = tab }
+                        .clickable { viewModel.setAttendanceTab(tab) }
                         .padding(vertical = 10.dp),
                     contentAlignment = Alignment.Center
                 ) {
@@ -1347,24 +1421,11 @@ fun RoutineScreen(
     val routines by viewModel.allRoutines.collectAsState()
     val subjects by viewModel.allSubjects.collectAsState()
 
-    // Helper to convert time string to minutes from midnight
-    fun timeToMinutes(timeStr: String): Int {
-        val parts = timeStr.split(" ")
-        if (parts.size != 2) return 0
-        val timeParts = parts[0].split(":")
-        var h = timeParts[0].toIntOrNull() ?: 0
-        val m = if (timeParts.size > 1) timeParts[1].toIntOrNull() ?: 0 else 0
-        val amPm = parts[1]
-        if (amPm == "PM" && h < 12) h += 12
-        if (amPm == "AM" && h == 12) h = 0
-        return h * 60 + m
-    }
-
     // Extract all unique start times from the database to make it dynamic
     val timeSlots = remember(routines) {
         routines.map { it.startTime }
             .distinct()
-            .sortedBy { timeToMinutes(it) }
+            .sortedBy { DateTimeUtils.timeToMinutes(it) }
     }
 
     Column(modifier = Modifier.fillMaxSize().padding(top = 16.dp)) {
@@ -1409,7 +1470,7 @@ fun RoutineScreen(
                 // Dynamic Time Grid
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                     items(timeSlots) { time ->
-                        val currentMinutes = timeToMinutes(time)
+                        val currentMinutes = DateTimeUtils.timeToMinutes(time)
                         Row(modifier = Modifier.height(80.dp)) {
                             // Dynamic Time Column
                             Box(
@@ -1424,8 +1485,8 @@ fun RoutineScreen(
                                 // Find any routine that covers this specific time slot
                                 val coveringRoutine = routines.find { routine ->
                                     routine.dayOfWeek == day &&
-                                    timeToMinutes(routine.startTime) <= currentMinutes &&
-                                    timeToMinutes(routine.endTime) > currentMinutes
+                                    DateTimeUtils.timeToMinutes(routine.startTime) <= currentMinutes &&
+                                    DateTimeUtils.timeToMinutes(routine.endTime) > currentMinutes
                                 }
 
                                 val subject = coveringRoutine?.let { r -> subjects.find { it.subjectCode == r.subjectCode } }

@@ -92,6 +92,11 @@ fun AddSubjectScreen(
     var missed by remember { mutableStateOf(initialSubject?.missed ?: 0) }
     var required by remember { mutableStateOf(initialSubject?.requiredPercentage ?: 75) }
 
+    // --- VALIDATION STATE ---
+    var subjectCodeError by remember { mutableStateOf<String?>(null) }
+    var subjectNameError by remember { mutableStateOf<String?>(null) }
+    var routineError by remember { mutableStateOf<String?>(null) }
+
     var isRoutineExpanded by remember { mutableStateOf(false) }
 
     val weeklySchedule = remember {
@@ -145,10 +150,26 @@ fun AddSubjectScreen(
                 
                 Button(
                     onClick = {
-                        onSaveSubject(
-                            subjectCode, subjectName, category, professorName,
-                            attended, missed, required, weeklySchedule.toList()
-                        )
+                        // Reset errors
+                        subjectCodeError = if (subjectCode.isBlank()) "Subject code is required" else null
+                        subjectNameError = if (subjectName.isBlank()) "Subject name is required" else null
+                        
+                        val enabledDays = weeklySchedule.filter { it.isEnabled }
+                        routineError = when {
+                            enabledDays.isEmpty() -> "Please set at least one day in the routine"
+                            enabledDays.any { it.startTime == "Set Time" || it.endTime == "Set Time" } -> 
+                                "Please set start and end times for all enabled days"
+                            else -> null
+                        }
+
+                        if (subjectCodeError == null && subjectNameError == null && routineError == null) {
+                            onSaveSubject(
+                                subjectCode, subjectName, category, professorName,
+                                attended, missed, required, weeklySchedule.toList()
+                            )
+                        } else {
+                            if (routineError != null) isRoutineExpanded = true
+                        }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue),
                     shape = RoundedCornerShape(12.dp),
@@ -198,8 +219,23 @@ fun AddSubjectScreen(
             }
 
             // 3. Text Inputs
-            CustomInputField("Enter Subject Code", subjectCode, "E.g., CS-301", enabled = !isEditing) { subjectCode = it }
-            CustomInputField("Enter Subject Name", subjectName, "E.g., Operating Systems") { subjectName = it }
+            CustomInputField(
+                "Enter Subject Code", subjectCode, "E.g., CS-301", 
+                enabled = !isEditing, 
+                error = subjectCodeError
+            ) { 
+                subjectCode = it 
+                subjectCodeError = null
+            }
+            
+            CustomInputField(
+                "Enter Subject Name", subjectName, "E.g., Operating Systems", 
+                error = subjectNameError
+            ) { 
+                subjectName = it 
+                subjectNameError = null
+            }
+            
             CustomInputField("Enter Professor (Optional)", professorName, "E.g., Dr. Smith") { professorName = it }
 
             // 4. Number Steppers
@@ -209,7 +245,11 @@ fun AddSubjectScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .border(1.dp, PrimaryOrange.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+                    .border(
+                        width = 1.dp, 
+                        color = if (routineError != null) PrimaryRed else PrimaryOrange.copy(alpha = 0.5f), 
+                        shape = RoundedCornerShape(12.dp)
+                    )
                     .clip(RoundedCornerShape(12.dp))
                     .background(CardBackground)
             ) {
@@ -222,13 +262,22 @@ fun AddSubjectScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column {
-                        Text("Weekly Routine", color = PrimaryOrange, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                        Text("Set schedule for push notifications", color = TextGray, fontSize = 12.sp)
+                        Text(
+                            text = "Weekly Routine", 
+                            color = if (routineError != null) PrimaryRed else PrimaryOrange, 
+                            fontWeight = FontWeight.Bold, 
+                            fontSize = 18.sp
+                        )
+                        Text(
+                            text = if (routineError != null) routineError!! else "Set schedule for push notifications", 
+                            color = if (routineError != null) PrimaryRed else TextGray, 
+                            fontSize = 12.sp
+                        )
                     }
                     Icon(
                         imageVector = if (isRoutineExpanded) Icons.Default.Remove else Icons.Default.Add,
                         contentDescription = "Toggle",
-                        tint = PrimaryOrange
+                        tint = if (routineError != null) PrimaryRed else PrimaryOrange
                     )
                 }
 
@@ -237,7 +286,10 @@ fun AddSubjectScreen(
                         weeklySchedule.forEachIndexed { index, schedule ->
                             DayTimeRow(
                                 schedule = schedule,
-                                onUpdate = { updatedSchedule -> weeklySchedule[index] = updatedSchedule }
+                                onUpdate = { updatedSchedule -> 
+                                    weeklySchedule[index] = updatedSchedule 
+                                    routineError = null // Clear error on interaction
+                                }
                             )
                         }
                     }
@@ -265,9 +317,16 @@ fun CategoryChip(label: String, isSelected: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-fun CustomInputField(label: String, value: String, placeholder: String, enabled: Boolean = true, onValueChange: (String) -> Unit) {
+fun CustomInputField(
+    label: String, 
+    value: String, 
+    placeholder: String, 
+    enabled: Boolean = true, 
+    error: String? = null,
+    onValueChange: (String) -> Unit
+) {
     Column {
-        Text(label, color = TextGray, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+        Text(label, color = if (error != null) PrimaryRed else TextGray, fontSize = 14.sp, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(8.dp))
         OutlinedTextField(
             value = value,
@@ -275,12 +334,14 @@ fun CustomInputField(label: String, value: String, placeholder: String, enabled:
             placeholder = { Text(placeholder, color = Color.DarkGray) },
             enabled = enabled,
             modifier = Modifier.fillMaxWidth(),
+            isError = error != null,
             colors = OutlinedTextFieldDefaults.colors(
                 focusedContainerColor = CardBackground,
                 unfocusedContainerColor = CardBackground,
                 disabledContainerColor = CardBackground.copy(alpha = 0.5f),
-                focusedBorderColor = PrimaryBlue,
-                unfocusedBorderColor = Color.Transparent,
+                focusedBorderColor = if (error != null) PrimaryRed else PrimaryBlue,
+                unfocusedBorderColor = if (error != null) PrimaryRed else Color.Transparent,
+                errorBorderColor = PrimaryRed,
                 focusedTextColor = TextWhite,
                 unfocusedTextColor = TextWhite,
                 disabledTextColor = TextWhite.copy(alpha = 0.5f)
@@ -288,6 +349,14 @@ fun CustomInputField(label: String, value: String, placeholder: String, enabled:
             shape = RoundedCornerShape(12.dp),
             singleLine = true
         )
+        if (error != null) {
+            Text(
+                text = error,
+                color = PrimaryRed,
+                fontSize = 12.sp,
+                modifier = Modifier.padding(start = 4.dp, top = 4.dp)
+            )
+        }
     }
 }
 

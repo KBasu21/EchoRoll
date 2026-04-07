@@ -80,4 +80,7 @@ interface EchoDao {
     
     @Query("DELETE FROM holidays WHERE type = :type")
     suspend fun deleteHolidaysByType(type: String)
+
+    @Query("DELETE FROM holidays")
+    suspend fun deleteAllHolidays()
 }

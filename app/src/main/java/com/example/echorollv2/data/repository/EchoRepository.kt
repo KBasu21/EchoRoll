@@ -105,4 +105,8 @@ class EchoRepository(private val dao: EchoDao) {
     suspend fun deleteAllAutomaticHolidays() {
         dao.deleteHolidaysByType("Automatic")
     }
+
+    suspend fun deleteAllHolidays() {
+        dao.deleteAllHolidays()
+    }
 }
