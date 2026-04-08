@@ -291,7 +291,10 @@ fun SettingsScreen(
                 val workManager = androidx.work.WorkManager.getInstance(context)
                 Button(
                     onClick = {
-                        val immediateRequest = androidx.work.OneTimeWorkRequestBuilder<com.example.echorollv2.services.DailyCheckWorker>().build()
+                        val silentData = androidx.work.Data.Builder().putBoolean("SILENT_CHECK", true).build()
+                        val immediateRequest = androidx.work.OneTimeWorkRequestBuilder<com.example.echorollv2.services.DailyCheckWorker>()
+                            .setInputData(silentData)
+                            .build()
                         workManager.enqueueUniqueWork(
                             "DailyCheckManual",
                             androidx.work.ExistingWorkPolicy.REPLACE,

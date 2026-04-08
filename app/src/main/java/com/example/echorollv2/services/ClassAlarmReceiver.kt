@@ -23,7 +23,9 @@ class ClassAlarmReceiver : BroadcastReceiver() {
                 context,
                 "Class Wrap-up! \uD83D\uDCDD",
                 com.example.echorollv2.utils.HumorUtils.getAttendanceReminder(subjectName),
-                routineId
+                routineId,
+                subjectCode = subjectCode,
+                routineId = routineId
             )
 
             // 2. Schedule Follow-up Worker in 15 minutes

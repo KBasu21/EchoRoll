@@ -36,7 +36,9 @@ class FollowUpWorker(
                 applicationContext,
                 "Ghost Detector \uD83D\uDC7B",
                 HumorUtils.getRandomNotification(subjectName),
-                subjectCode.hashCode() + 100
+                subjectCode.hashCode() + 100,
+                subjectCode = subjectCode,
+                routineId = routineId
             )
 
             // Self-reschedule in 15 minutes

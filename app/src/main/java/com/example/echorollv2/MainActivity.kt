@@ -156,7 +156,10 @@ class MainActivity : ComponentActivity() {
         )
 
         // Trigger an immediate check as well, to ensure today's alarms are set if we just started/updated
-        val immediateRequest = OneTimeWorkRequestBuilder<DailyCheckWorker>().build()
+        val immediateData = androidx.work.Data.Builder().putBoolean("SILENT_CHECK", true).build()
+        val immediateRequest = OneTimeWorkRequestBuilder<DailyCheckWorker>()
+            .setInputData(immediateData)
+            .build()
         WorkManager.getInstance(this).enqueueUniqueWork(
             "DailyCheckImmediate",
             androidx.work.ExistingWorkPolicy.REPLACE,
@@ -350,8 +353,11 @@ fun MainScreen(
                         viewModel.saveSubjectAndRoutine(
                             code, name, category, professor, attended, missed, req, schedule
                         )
-                        // Trigger immediate alarm refresh
-                        val refreshRequest = OneTimeWorkRequestBuilder<com.example.echorollv2.services.DailyCheckWorker>().build()
+                        // Trigger immediate alarm refresh (SILENT)
+                        val silentData = androidx.work.Data.Builder().putBoolean("SILENT_CHECK", true).build()
+                        val refreshRequest = OneTimeWorkRequestBuilder<com.example.echorollv2.services.DailyCheckWorker>()
+                            .setInputData(silentData)
+                            .build()
                         WorkManager.getInstance(context).enqueueUniqueWork(
                             "DailyCheckRefresh",
                             androidx.work.ExistingWorkPolicy.REPLACE,
@@ -369,8 +375,11 @@ fun MainScreen(
                                 viewModel.saveSubjectAndRoutine(
                                     code, name, category, professor, attended, missed, req, schedule
                                 )
-                                // Trigger immediate alarm refresh
-                                val refreshRequest = OneTimeWorkRequestBuilder<com.example.echorollv2.services.DailyCheckWorker>().build()
+                                // Trigger immediate alarm refresh (SILENT)
+                                val silentData = androidx.work.Data.Builder().putBoolean("SILENT_CHECK", true).build()
+                                val refreshRequest = OneTimeWorkRequestBuilder<com.example.echorollv2.services.DailyCheckWorker>()
+                                    .setInputData(silentData)
+                                    .build()
                                 WorkManager.getInstance(context).enqueueUniqueWork(
                                     "DailyCheckRefresh",
                                     androidx.work.ExistingWorkPolicy.REPLACE,
