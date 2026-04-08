@@ -7,6 +7,8 @@ import com.example.echorollv2.data.local.entity.AttendanceRecordEntity
 import com.example.echorollv2.data.local.entity.RoutineEntity
 import com.example.echorollv2.data.local.entity.StickyNoteEntity
 import com.example.echorollv2.data.local.entity.SubjectEntity
+import com.example.echorollv2.data.local.entity.ExamEntity
+import com.example.echorollv2.data.local.entity.ExamSubjectEntity
 import com.example.echorollv2.data.repository.EchoRepository
 import com.example.echorollv2.ui.screens.setup.DaySchedule
 import kotlinx.coroutines.flow.Flow
@@ -410,6 +412,62 @@ class EchoViewModel(
             
             // Re-calculate all subject totals from records
             repository.recalculateSubjectStats(subjectCode)
+        }
+    }
+
+    // --- EXAMS ---
+    val allExams: StateFlow<List<ExamEntity>> = repository.allExams
+        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
+    val allExamSubjects: StateFlow<List<ExamSubjectEntity>> = repository.allExamSubjects
+        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
+    fun saveExam(name: String, classesHeld: Boolean, id: Int = 0) {
+        viewModelScope.launch {
+            if (id == 0) {
+                repository.insertExam(ExamEntity(name = name, classesHeldDuringExams = classesHeld))
+            } else {
+                repository.updateExam(ExamEntity(id = id, name = name, classesHeldDuringExams = classesHeld))
+            }
+        }
+    }
+
+    fun deleteExam(exam: ExamEntity) {
+        viewModelScope.launch {
+            repository.deleteExam(exam)
+        }
+    }
+
+    fun saveExamSubject(
+        examId: Int,
+        subjectCode: String,
+        subjectName: String,
+        examDate: String,
+        marks: String = "",
+        stickyNote: String = "",
+        id: Int = 0
+    ) {
+        viewModelScope.launch {
+            val entity = ExamSubjectEntity(
+                id = id,
+                examId = examId,
+                subjectCode = subjectCode,
+                subjectName = subjectName,
+                examDate = examDate,
+                marksScored = marks,
+                stickyNote = stickyNote
+            )
+            if (id == 0) {
+                repository.insertExamSubject(entity)
+            } else {
+                repository.updateExamSubject(entity)
+            }
+        }
+    }
+
+    fun deleteExamSubject(subject: ExamSubjectEntity) {
+        viewModelScope.launch {
+            repository.deleteExamSubject(subject)
         }
     }
 }

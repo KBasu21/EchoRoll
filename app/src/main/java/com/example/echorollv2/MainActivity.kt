@@ -9,7 +9,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,6 +31,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddCircleOutline
@@ -91,11 +91,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.example.echorollv2.data.local.EchoDatabase
 import com.example.echorollv2.data.local.entity.AttendanceRecordEntity
+import com.example.echorollv2.data.local.entity.ExamEntity
+import com.example.echorollv2.data.local.entity.ExamSubjectEntity
 import com.example.echorollv2.data.local.entity.HolidayEntity
 import com.example.echorollv2.data.local.entity.RoutineEntity
 import com.example.echorollv2.data.local.entity.SubjectEntity
@@ -105,10 +107,18 @@ import com.example.echorollv2.services.DailyCheckWorker
 import com.example.echorollv2.services.NotificationHelper
 import com.example.echorollv2.ui.screens.setup.AddSubjectScreen
 import com.example.echorollv2.ui.screens.setup.DaySchedule
-import com.example.echorollv2.ui.theme.*
-import com.example.echorollv2.utils.DateTimeUtils
+import com.example.echorollv2.ui.theme.EchoRollV2Theme
+import com.example.echorollv2.ui.theme.ExamPurple
+import com.example.echorollv2.ui.theme.HolidayYellow
+import com.example.echorollv2.ui.theme.LocalAppColors
+import com.example.echorollv2.ui.theme.PrimaryBlue
+import com.example.echorollv2.ui.theme.PrimaryGreen
+import com.example.echorollv2.ui.theme.PrimaryOrange
+import com.example.echorollv2.ui.theme.PrimaryPurple
+import com.example.echorollv2.ui.theme.PrimaryRed
 import com.example.echorollv2.ui.viewmodels.EchoViewModel
 import com.example.echorollv2.ui.viewmodels.EchoViewModelFactory
+import com.example.echorollv2.utils.DateTimeUtils
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -143,6 +153,14 @@ class MainActivity : ComponentActivity() {
             "DailyCheck", 
             androidx.work.ExistingPeriodicWorkPolicy.UPDATE, 
             workRequest
+        )
+
+        // Trigger an immediate check as well, to ensure today's alarms are set if we just started/updated
+        val immediateRequest = OneTimeWorkRequestBuilder<DailyCheckWorker>().build()
+        WorkManager.getInstance(this).enqueueUniqueWork(
+            "DailyCheckImmediate",
+            androidx.work.ExistingWorkPolicy.REPLACE,
+            immediateRequest
         )
 
         val database = EchoDatabase.getDatabase(this)
@@ -257,6 +275,7 @@ fun MainScreen(
     var subjectToEdit by remember { mutableStateOf<SubjectEntity?>(null) }
     var editRoutines by remember { mutableStateOf<List<DaySchedule>>(emptyList()) }
     var selectedSubjectCode by remember { mutableStateOf("") }
+    var selectedExamId by remember { mutableStateOf(0) }
 
     val navigateTo: (String) -> Unit = { screen ->
         navigationStack = navigationStack + currentScreen
@@ -276,7 +295,7 @@ fun MainScreen(
 
     Scaffold(
         bottomBar = {
-            if (currentScreen in listOf("Attendance", "Routine", "Today", "Holidays", "Settings")) {
+            if (currentScreen in listOf("Attendance", "Routine", "Today", "Exams", "Holidays", "Settings")) {
                 BottomNavigationBar(currentScreen) { 
                     if (it != currentScreen) {
                         navigationStack = emptyList() // Clear stack when switching tabs
@@ -331,6 +350,13 @@ fun MainScreen(
                         viewModel.saveSubjectAndRoutine(
                             code, name, category, professor, attended, missed, req, schedule
                         )
+                        // Trigger immediate alarm refresh
+                        val refreshRequest = OneTimeWorkRequestBuilder<com.example.echorollv2.services.DailyCheckWorker>().build()
+                        WorkManager.getInstance(context).enqueueUniqueWork(
+                            "DailyCheckRefresh",
+                            androidx.work.ExistingWorkPolicy.REPLACE,
+                            refreshRequest
+                        )
                         goBack()
                     }
                 )
@@ -342,6 +368,13 @@ fun MainScreen(
                             onSaveSubject = { code, name, category, professor, attended, missed, req, schedule ->
                                 viewModel.saveSubjectAndRoutine(
                                     code, name, category, professor, attended, missed, req, schedule
+                                )
+                                // Trigger immediate alarm refresh
+                                val refreshRequest = OneTimeWorkRequestBuilder<com.example.echorollv2.services.DailyCheckWorker>().build()
+                                WorkManager.getInstance(context).enqueueUniqueWork(
+                                    "DailyCheckRefresh",
+                                    androidx.work.ExistingWorkPolicy.REPLACE,
+                                    refreshRequest
                                 )
                                 goBack()
                             },
@@ -395,6 +428,22 @@ fun MainScreen(
                     onAddManualHoliday = { date, name -> viewModel.addManualHoliday(date, name) },
                     onUpdateHoliday = { viewModel.saveHoliday(it) }
                 )
+
+                "Exams" -> ExamsScreen(
+                    viewModel = viewModel,
+                    isDarkMode = isDarkMode,
+                    onThemeToggle = onThemeToggle,
+                    onExamClick = { id ->
+                        selectedExamId = id
+                        navigateTo("ExamSubjects")
+                    }
+                )
+
+                "ExamSubjects" -> ExamSubjectsScreen(
+                    examId = selectedExamId,
+                    viewModel = viewModel,
+                    onNavigateBack = goBack
+                )
             }
         }
     }
@@ -437,6 +486,12 @@ fun TodayScreen(
     val routines by viewModel.allRoutines.collectAsState()
     val attendanceRecords by viewModel.getAttendanceRecordsForDate(dateFormatted).collectAsState(initial = emptyList())
     val subjects by viewModel.allSubjects.collectAsState()
+    val allExamSubjects by viewModel.allExamSubjects.collectAsState()
+    val allExams by viewModel.allExams.collectAsState()
+
+    val todayExamSubject = allExamSubjects.find { it.examDate == dateFormatted }
+    val todayExam = todayExamSubject?.let { es -> allExams.find { it.id == es.examId } }
+    val classesHeld = todayExam?.classesHeldDuringExams ?: true
 
     val todayRoutines = routines.filter { it.dayOfWeek == dayName }
 
@@ -460,7 +515,11 @@ fun TodayScreen(
         Spacer(modifier = Modifier.height(8.dp))
 
         // Horizontal Calendar Row
-        CalendarHeader(selectedDate = selectedDate, onDateSelected = { selectedDate = it })
+        CalendarHeader(
+            selectedDate = selectedDate, 
+            onDateSelected = { selectedDate = it },
+            allExamSubjects = allExamSubjects
+        )
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -479,6 +538,15 @@ fun TodayScreen(
         } else if (todayRoutines.isEmpty()) {
             Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                 Text("No classes scheduled!", color = colors.textSecondary)
+            }
+        } else if (!classesHeld) {
+            Box(modifier = Modifier.weight(1f).fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("📝", fontSize = 60.sp)
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text("${todayExam?.name ?: "Exam"} Ongoing", color = colors.textPrimary, fontSize = 24.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                    Text("Classes are suspended during this exam.", color = colors.textSecondary, fontSize = 18.sp, textAlign = TextAlign.Center)
+                }
             }
         } else {
             val displayRoutines = remember(todayRoutines, attendanceRecords) {
@@ -549,7 +617,11 @@ fun TodayScreen(
 }
 
 @Composable
-fun CalendarHeader(selectedDate: Date, onDateSelected: (Date) -> Unit) {
+fun CalendarHeader(
+    selectedDate: Date, 
+    onDateSelected: (Date) -> Unit,
+    allExamSubjects: List<ExamSubjectEntity> = emptyList()
+) {
     val colors = LocalAppColors.current
     val monthYearFormat = SimpleDateFormat("MMMM yyyy", Locale.getDefault())
     
@@ -597,9 +669,11 @@ fun CalendarHeader(selectedDate: Date, onDateSelected: (Date) -> Unit) {
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 items(dates) { date ->
-                    val isSelected = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(date) == SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(selectedDate)
+                    val dateStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(date)
+                    val isSelected = dateStr == SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(selectedDate)
                     val dayNum = SimpleDateFormat("d", Locale.getDefault()).format(date)
                     val dayNameStr = SimpleDateFormat("EEE", Locale.getDefault()).format(date)
+                    val isExamDate = allExamSubjects.any { it.examDate == dateStr }
                     
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -615,14 +689,17 @@ fun CalendarHeader(selectedDate: Date, onDateSelected: (Date) -> Unit) {
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(dayNameStr, color = PrimaryOrange, fontSize = 12.sp)
                         } else {
+                            val textColor = if (isExamDate) ExamPurple else colors.textPrimary
                             Box(
-                                modifier = Modifier.size(40.dp),
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .then(if (isExamDate) Modifier.border(1.dp, ExamPurple, CircleShape) else Modifier),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text(dayNum, color = colors.textPrimary, fontSize = 16.sp)
+                                Text(dayNum, color = textColor, fontSize = 16.sp, fontWeight = if (isExamDate) FontWeight.Bold else FontWeight.Normal)
                             }
                             Spacer(modifier = Modifier.height(4.dp))
-                            Text(dayNameStr, color = Color.Gray, fontSize = 12.sp)
+                            Text(dayNameStr, color = if (isExamDate) ExamPurple else Color.Gray, fontSize = 12.sp)
                         }
                     }
                 }
@@ -999,6 +1076,7 @@ fun BottomNavigationBar(currentScreen: String, onScreenSelected: (String) -> Uni
         NavigationItem("Attendance", Icons.Default.BarChart),
         NavigationItem("Today", Icons.Default.Today),
         NavigationItem("Routine", Icons.Outlined.CalendarMonth),
+        NavigationItem("Exams", Icons.Default.MenuBook),
         NavigationItem("Holidays", Icons.Default.Celebration),
         NavigationItem("Settings", Icons.Default.Settings)
     )
@@ -1601,6 +1679,7 @@ fun SubjectDetailScreen(subjectCode: String, viewModel: EchoViewModel, onNavigat
                 LegendItem("Absent", PrimaryRed)
                 LegendItem("Cancelled", colors.textSecondary)
                 LegendItem("Holiday", HolidayYellow)
+                LegendItem("Exam", ExamPurple)
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -1624,6 +1703,8 @@ fun SubjectDetailScreen(subjectCode: String, viewModel: EchoViewModel, onNavigat
                 records = allRecords,
                 holidays = allHolidays,
                 routines = routinesForSubject,
+                allExams = viewModel.allExams.collectAsState().value,
+                allExamSubjects = viewModel.allExamSubjects.collectAsState().value,
                 onDateClick = { date ->
                     selectedDateForMarking = date
                     showMarkingSheet = true
@@ -1687,6 +1768,8 @@ fun AttendanceCalendarGrid(
     records: List<AttendanceRecordEntity>,
     holidays: List<HolidayEntity>,
     routines: List<RoutineEntity>,
+    allExams: List<ExamEntity>,
+    allExamSubjects: List<ExamSubjectEntity>,
     onDateClick: (Date) -> Unit,
     onMarkingRestricted: (String) -> Unit
 ) {
@@ -1758,6 +1841,10 @@ fun AttendanceCalendarGrid(
                             val dayNameFull = SimpleDateFormat("EEEE", Locale.getDefault()).format(date)
                             
                             val isHoliday = holidays.any { it.date == dateStr }
+                            val examSubject = allExamSubjects.find { it.examDate == dateStr }
+                            val exam = examSubject?.let { es -> allExams.find { it.id == es.examId } }
+                            val isExamDay = examSubject != null
+                            val classesHeldDuringExam = exam?.classesHeldDuringExams ?: true
                             
                             // Date Comparison for Future
                             val todayCal = Calendar.getInstance().apply {
@@ -1779,6 +1866,8 @@ fun AttendanceCalendarGrid(
 
                             val bgColor = if (isHoliday) {
                                 HolidayYellow
+                            } else if (isExamDay) {
+                                ExamPurple
                             } else if (dayRecords.any { it.status == "Cancelled" }) {
                                 colors.textSecondary
                             } else if (dayRecords.any { it.status == "Present" }) {
@@ -1791,7 +1880,7 @@ fun AttendanceCalendarGrid(
                                 colors.surfaceVariant
                             }
                             
-                            val contentAlpha = if (isFuture || (!isClassDay && !isHoliday)) 0.5f else 1.0f
+                            val contentAlpha = if (isFuture || (!isClassDay && !isHoliday && !isExamDay)) 0.5f else 1.0f
 
                             Box(modifier = Modifier.size(36.dp), contentAlignment = Alignment.Center) {
                                 Box(
@@ -1803,6 +1892,8 @@ fun AttendanceCalendarGrid(
                                                 onMarkingRestricted("Attendance cannot be marked for future dates!")
                                             } else if (isHoliday) {
                                                 onMarkingRestricted("Attendance cannot be marked on holidays!")
+                                            } else if (isExamDay && !classesHeldDuringExam) {
+                                                onMarkingRestricted("Classes suspended due to ${exam?.name ?: "Exam"}")
                                             } else if (!isClassDay) {
                                                 onMarkingRestricted("No class scheduled for $dayNameFull")
                                             } else {
@@ -1915,6 +2006,435 @@ fun AttendanceMarkingSheet(
             ) {
                 Text("Save", color = colors.textPrimary, fontWeight = FontWeight.Bold)
             }
+        }
+    }
+}
+
+@Composable
+fun ExamsScreen(
+    viewModel: EchoViewModel,
+    isDarkMode: Boolean,
+    onThemeToggle: () -> Unit,
+    onExamClick: (Int) -> Unit
+) {
+    val colors = LocalAppColors.current
+    val exams by viewModel.allExams.collectAsState()
+    var showAddDialog by remember { mutableStateOf(false) }
+    var examToEdit by remember { mutableStateOf<com.example.echorollv2.data.local.entity.ExamEntity?>(null) }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        // Top Bar
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = if (isDarkMode) Icons.Default.WbSunny else Icons.Default.DarkMode,
+                contentDescription = "Toggle Theme",
+                tint = colors.textPrimary,
+                modifier = Modifier.clickable { onThemeToggle() }
+            )
+            Text("Exams", color = colors.textPrimary, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Icon(
+                imageVector = Icons.Default.AddCircleOutline,
+                contentDescription = "Add Exam",
+                tint = colors.textPrimary,
+                modifier = Modifier.size(28.dp).clickable { 
+                    examToEdit = null
+                    showAddDialog = true 
+                }
+            )
+        }
+
+        if (exams.isEmpty()) {
+            Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(Icons.Default.MenuBook, contentDescription = null, modifier = Modifier.size(80.dp), tint = Color.Gray)
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text("No exams added yet!", color = colors.textSecondary)
+                }
+            }
+        } else {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                modifier = Modifier.fillMaxSize().padding(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                items(exams) { exam ->
+                    ExamCard(
+                        exam = exam,
+                        onClick = { onExamClick(exam.id) },
+                        onEdit = { 
+                            examToEdit = exam
+                            showAddDialog = true 
+                        },
+                        onDelete = { viewModel.deleteExam(exam) }
+                    )
+                }
+            }
+        }
+    }
+
+    if (showAddDialog) {
+        AddExamDialog(
+            initialExam = examToEdit,
+            onDismiss = { showAddDialog = false },
+            onSave = { name, classesHeld ->
+                viewModel.saveExam(name, classesHeld, examToEdit?.id ?: 0)
+                showAddDialog = false
+            }
+        )
+    }
+}
+
+@Composable
+fun ExamCard(
+    exam: com.example.echorollv2.data.local.entity.ExamEntity,
+    onClick: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
+) {
+    val colors = LocalAppColors.current
+    Surface(
+        onClick = onClick,
+        color = colors.surfaceVariant,
+        shape = RoundedCornerShape(24.dp),
+        modifier = Modifier.fillMaxWidth().height(160.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                Icon(Icons.Default.Edit, "Edit", tint = PrimaryBlue, modifier = Modifier.size(18.dp).clickable { onEdit() })
+                Spacer(modifier = Modifier.width(12.dp))
+                Icon(Icons.Default.Delete, "Delete", tint = PrimaryRed, modifier = Modifier.size(18.dp).clickable { onDelete() })
+            }
+            Text(exam.name, color = colors.textPrimary, fontSize = 20.sp, fontWeight = FontWeight.Bold, maxLines = 2)
+            Spacer(modifier = Modifier.weight(1f))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = if (exam.classesHeldDuringExams) Icons.Default.Check else Icons.Default.Description,
+                    contentDescription = null,
+                    tint = if (exam.classesHeldDuringExams) PrimaryGreen else PrimaryOrange,
+                    modifier = Modifier.size(14.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    if (exam.classesHeldDuringExams) "Classes Active" else "Classes Suspended",
+                    color = colors.textSecondary,
+                    fontSize = 11.sp
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ExamSubjectsScreen(
+    examId: Int,
+    viewModel: EchoViewModel,
+    onNavigateBack: () -> Unit
+) {
+    val colors = LocalAppColors.current
+    val exams by viewModel.allExams.collectAsState()
+    val exam = exams.find { it.id == examId } ?: return
+    val examSubjects by viewModel.allExamSubjects.collectAsState()
+    val subjects = examSubjects.filter { it.examId == examId }
+    
+    var showAddDialog by remember { mutableStateOf(false) }
+    var subjectToEdit by remember { mutableStateOf<com.example.echorollv2.data.local.entity.ExamSubjectEntity?>(null) }
+
+    Scaffold(
+        topBar = {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onNavigateBack) {
+                    Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = colors.textPrimary)
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Column {
+                    Text(exam.name, color = colors.textPrimary, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                    Text(if (exam.classesHeldDuringExams) "Classes Active" else "Classes Suspended", color = colors.textSecondary, fontSize = 12.sp)
+                }
+                Spacer(modifier = Modifier.weight(1f))
+                Icon(
+                    imageVector = Icons.Default.AddCircleOutline,
+                    contentDescription = "Add Subject",
+                    tint = colors.textPrimary,
+                    modifier = Modifier.size(28.dp).clickable { 
+                        subjectToEdit = null
+                        showAddDialog = true 
+                    }
+                )
+            }
+        },
+        containerColor = colors.background
+    ) { padding ->
+        if (subjects.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                Text("No subjects added to this exam.", color = colors.textSecondary)
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                items(subjects) { subject ->
+                    ExamSubjectCard(
+                        subject = subject,
+                        onEdit = {
+                            subjectToEdit = subject
+                            showAddDialog = true
+                        },
+                        onDelete = { viewModel.deleteExamSubject(subject) }
+                    )
+                }
+                item { Spacer(modifier = Modifier.height(16.dp)) }
+            }
+        }
+    }
+
+    if (showAddDialog) {
+        AddExamSubjectDialog(
+            examId = examId,
+            initialSubject = subjectToEdit,
+            onDismiss = { showAddDialog = false },
+            onSave = { code, name, date, marks, note ->
+                viewModel.saveExamSubject(examId, code, name, date, marks, note, subjectToEdit?.id ?: 0)
+                showAddDialog = false
+            }
+        )
+    }
+}
+
+@Composable
+fun ExamSubjectCard(
+    subject: com.example.echorollv2.data.local.entity.ExamSubjectEntity,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
+) {
+    val colors = LocalAppColors.current
+    val stickyNoteColor = remember(subject.subjectCode) {
+        val hash = subject.subjectCode.hashCode()
+        val colors = listOf(
+            Color(0xFFFFF9C4), // Light Yellow
+            Color(0xFFF1F8E1), // Light Green
+            Color(0xFFE1F5FE), // Light Blue
+            Color(0xFFF3E5F5), // Light Purple
+            Color(0xFFFFF3E0)  // Light Orange
+        )
+        colors[kotlin.math.abs(hash % colors.size)]
+    }
+
+    Surface(
+        color = stickyNoteColor,
+        shape = RoundedCornerShape(4.dp),
+        shadowElevation = 4.dp,
+        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(4.dp))
+    ) {
+        // Sticky Note Aesthetic
+        Box {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(subject.subjectCode, color = Color.DarkGray, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Row {
+                        Icon(Icons.Default.Edit, "Edit", tint = Color.DarkGray, modifier = Modifier.size(18.dp).clickable { onEdit() })
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Icon(Icons.Default.Delete, "Delete", tint = Color.DarkGray, modifier = Modifier.size(18.dp).clickable { onDelete() })
+                    }
+                }
+                Text(subject.subjectName, color = Color.Black, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.CalendarToday, null, tint = Color.DarkGray, modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    val prettyDate = try {
+                        val d = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).parse(subject.examDate)
+                        SimpleDateFormat("EEE, MMM d", Locale.getDefault()).format(d!!)
+                    } catch (e: Exception) { subject.examDate }
+                    Text(prettyDate, color = Color.DarkGray, fontSize = 13.sp)
+                }
+
+                if (subject.marksScored.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.BarChart, null, tint = PrimaryGreen, modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Score: ${subject.marksScored}", color = Color.Black, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                if (subject.stickyNote.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color.White.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
+                            .padding(8.dp)
+                    ) {
+                        Text(subject.stickyNote, color = Color.Black, fontSize = 13.sp, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AddExamDialog(
+    initialExam: com.example.echorollv2.data.local.entity.ExamEntity?,
+    onDismiss: () -> Unit,
+    onSave: (String, Boolean) -> Unit
+) {
+    val colors = LocalAppColors.current
+    var name by remember { mutableStateOf(initialExam?.name ?: "") }
+    var classesHeld by remember { mutableStateOf(initialExam?.classesHeldDuringExams ?: false) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(if (initialExam == null) "New Exam" else "Edit Exam", color = colors.textPrimary) },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Exam Name (e.g. Mid Term)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = colors.textPrimary,
+                        unfocusedTextColor = colors.textPrimary,
+                        focusedBorderColor = PrimaryBlue,
+                        unfocusedBorderColor = Color.Gray
+                    )
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Classes will be held", color = colors.textPrimary, modifier = Modifier.weight(1f))
+                    Switch(
+                        checked = classesHeld, 
+                        onCheckedChange = { classesHeld = it },
+                        colors = SwitchDefaults.colors(checkedThumbColor = colors.textPrimary, checkedTrackColor = PrimaryBlue)
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { if (name.isNotBlank()) onSave(name, classesHeld) },
+                colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
+            ) {
+                Text("Save", color = colors.textPrimary)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", color = colors.textSecondary)
+            }
+        },
+        containerColor = colors.surfaceVariant
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AddExamSubjectDialog(
+    examId: Int,
+    initialSubject: com.example.echorollv2.data.local.entity.ExamSubjectEntity?,
+    onDismiss: () -> Unit,
+    onSave: (String, String, String, String, String) -> Unit
+) {
+    val colors = LocalAppColors.current
+    var code by remember { mutableStateOf(initialSubject?.subjectCode ?: "") }
+    var name by remember { mutableStateOf(initialSubject?.subjectName ?: "") }
+    var date by remember { mutableStateOf(initialSubject?.examDate ?: SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())) }
+    var marks by remember { mutableStateOf(initialSubject?.marksScored ?: "") }
+    var note by remember { mutableStateOf(initialSubject?.stickyNote ?: "") }
+
+    var showDatePicker by remember { mutableStateOf(false) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(if (initialSubject == null) "Add Subject to Exam" else "Edit Exam Subject", color = colors.textPrimary) },
+        text = {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                OutlinedTextField(
+                    value = code, onValueChange = { code = it },
+                    label = { Text("Subject Code") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = name, onValueChange = { name = it },
+                    label = { Text("Subject Name") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                // Date Picker Button
+                Surface(
+                    onClick = { showDatePicker = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(4.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color.Gray),
+                    color = Color.Transparent
+                ) {
+                    Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.CalendarToday, null, tint = colors.textSecondary)
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(date.ifEmpty { "Select Date" }, color = colors.textPrimary)
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = marks, onValueChange = { marks = it },
+                    label = { Text("Marks Scored (Optional)") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = note, onValueChange = { note = it },
+                    label = { Text("Sticky Note") },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 3
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { if (code.isNotBlank() && name.isNotBlank()) onSave(code, name, date, marks, note) },
+                colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
+            ) {
+                Text("Save", color = colors.textPrimary)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", color = colors.textSecondary)
+            }
+        },
+        containerColor = colors.surfaceVariant
+    )
+
+    if (showDatePicker) {
+        val datePickerState = androidx.compose.material3.rememberDatePickerState()
+        androidx.compose.material3.DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let {
+                        date = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date(it))
+                    }
+                    showDatePicker = false
+                }) { Text("OK") }
+            }
+        ) {
+            androidx.compose.material3.DatePicker(state = datePickerState)
         }
     }
 }

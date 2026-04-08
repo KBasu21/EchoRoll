@@ -239,6 +239,8 @@ fun SettingsScreen(
 
                 Spacer(modifier = Modifier.height(32.dp))
                 
+                Spacer(modifier = Modifier.height(32.dp))
+                
                 Button(
                     onClick = { 
                         onSaveRegion(countryInput, stateInput)
@@ -256,6 +258,52 @@ fun SettingsScreen(
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Save & Fetch Holidays")
                     }
+                }
+
+                Spacer(modifier = Modifier.height(40.dp))
+                HorizontalDivider(color = colors.textSecondary.copy(alpha = 0.2f))
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Text("Notifications & Reliability", color = colors.textPrimary, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("If you missed a reminder, use these tools to verify and reset your class alarms.", color = colors.textSecondary, fontSize = 14.sp)
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                OutlinedButton(
+                    onClick = {
+                        com.example.echorollv2.services.NotificationHelper.sendNotification(
+                            context,
+                            "Test Notification \uD83D\uDD14",
+                            "If you can see this, notifications are working perfectly!",
+                            9999
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.textPrimary)
+                ) {
+                    Text("Send Test Notification")
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                val workManager = androidx.work.WorkManager.getInstance(context)
+                Button(
+                    onClick = {
+                        val immediateRequest = androidx.work.OneTimeWorkRequestBuilder<com.example.echorollv2.services.DailyCheckWorker>().build()
+                        workManager.enqueueUniqueWork(
+                            "DailyCheckManual",
+                            androidx.work.ExistingWorkPolicy.REPLACE,
+                            immediateRequest
+                        )
+                        Toast.makeText(context, "Alarms Refreshed for Today!", Toast.LENGTH_SHORT).show()
+                    },
+                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                    shape = RoundedCornerShape(25.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = com.example.echorollv2.ui.theme.PrimaryOrange)
+                ) {
+                    Text("Refresh Class Alarms", color = Color.White)
                 }
             }
         }

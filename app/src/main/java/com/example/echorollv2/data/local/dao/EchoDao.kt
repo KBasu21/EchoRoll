@@ -4,6 +4,8 @@ import androidx.room.*
 import com.example.echorollv2.data.local.entity.AttendanceRecordEntity
 import com.example.echorollv2.data.local.entity.RoutineEntity
 import com.example.echorollv2.data.local.entity.StickyNoteEntity
+import com.example.echorollv2.data.local.entity.ExamEntity
+import com.example.echorollv2.data.local.entity.ExamSubjectEntity
 import com.example.echorollv2.data.local.entity.SubjectEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -83,4 +85,32 @@ interface EchoDao {
 
     @Query("DELETE FROM holidays")
     suspend fun deleteAllHolidays()
+
+    // --- EXAM QUERIES ---
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertExam(exam: ExamEntity)
+
+    @Update
+    suspend fun updateExam(exam: ExamEntity)
+
+    @Delete
+    suspend fun deleteExam(exam: ExamEntity)
+
+    @Query("SELECT * FROM exams ORDER BY id DESC")
+    fun getAllExams(): Flow<List<ExamEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertExamSubject(subject: ExamSubjectEntity)
+
+    @Update
+    suspend fun updateExamSubject(subject: ExamSubjectEntity)
+
+    @Delete
+    suspend fun deleteExamSubject(subject: ExamSubjectEntity)
+
+    @Query("SELECT * FROM exam_subjects WHERE examId = :examId ORDER BY examDate ASC")
+    fun getSubjectsForExam(examId: Int): Flow<List<ExamSubjectEntity>>
+
+    @Query("SELECT * FROM exam_subjects ORDER BY examDate ASC")
+    fun getAllExamSubjects(): Flow<List<ExamSubjectEntity>>
 }

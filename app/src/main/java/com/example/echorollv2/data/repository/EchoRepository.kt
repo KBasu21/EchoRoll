@@ -2,6 +2,8 @@ package com.example.echorollv2.data.repository
 
 import com.example.echorollv2.data.local.dao.EchoDao
 import com.example.echorollv2.data.local.entity.AttendanceRecordEntity
+import com.example.echorollv2.data.local.entity.ExamEntity
+import com.example.echorollv2.data.local.entity.ExamSubjectEntity
 import com.example.echorollv2.data.local.entity.RoutineEntity
 import com.example.echorollv2.data.local.entity.StickyNoteEntity
 import com.example.echorollv2.data.local.entity.SubjectEntity
@@ -108,5 +110,37 @@ class EchoRepository(private val dao: EchoDao) {
 
     suspend fun deleteAllHolidays() {
         dao.deleteAllHolidays()
+    }
+
+    // Exams
+    val allExams: Flow<List<ExamEntity>> = dao.getAllExams()
+    val allExamSubjects: Flow<List<ExamSubjectEntity>> = dao.getAllExamSubjects()
+
+    suspend fun insertExam(exam: ExamEntity) {
+        dao.insertExam(exam)
+    }
+
+    suspend fun updateExam(exam: ExamEntity) {
+        dao.updateExam(exam)
+    }
+
+    suspend fun deleteExam(exam: ExamEntity) {
+        dao.deleteExam(exam)
+    }
+
+    fun getSubjectsForExam(examId: Int): Flow<List<ExamSubjectEntity>> {
+        return dao.getSubjectsForExam(examId)
+    }
+
+    suspend fun insertExamSubject(subject: ExamSubjectEntity) {
+        dao.insertExamSubject(subject)
+    }
+
+    suspend fun updateExamSubject(subject: ExamSubjectEntity) {
+        dao.updateExamSubject(subject)
+    }
+
+    suspend fun deleteExamSubject(subject: ExamSubjectEntity) {
+        dao.deleteExamSubject(subject)
     }
 }
