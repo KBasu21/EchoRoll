@@ -46,6 +46,7 @@ import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.StickyNote2
 import androidx.compose.material.icons.filled.Title
@@ -56,6 +57,8 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -494,6 +497,7 @@ fun TodayScreen(
     
     val routines by viewModel.allRoutines.collectAsState()
     val attendanceRecords by viewModel.getAttendanceRecordsForDate(dateFormatted).collectAsState(initial = emptyList())
+    val replacements by viewModel.getReplacementsForDate(dateFormatted).collectAsState(initial = emptyList())
     val subjects by viewModel.allSubjects.collectAsState()
     val allExamSubjects by viewModel.allExamSubjects.collectAsState()
     val allExams by viewModel.allExams.collectAsState()
@@ -558,40 +562,57 @@ fun TodayScreen(
                 }
             }
         } else {
-            val displayRoutines = remember(todayRoutines, attendanceRecords) {
+            val displayItems = remember(todayRoutines, attendanceRecords, replacements) {
+                val items = mutableListOf<Triple<RoutineEntity, AttendanceRecordEntity?, String?>>()
                 val usedRecordIds = mutableSetOf<Int>()
-                val matched = todayRoutines.map { routine ->
-                    var record = attendanceRecords.find { it.routineId == routine.id && it.id !in usedRecordIds }
 
-                    if (record == null) {
-                        record = attendanceRecords.find {
+                todayRoutines.forEach { routine ->
+                    val replacement = replacements.find { it.routineId == routine.id }
+                    
+                    if (replacement != null) {
+                        // Original Card (Cancelled)
+                        val originalRecord = attendanceRecords.find { 
+                            it.routineId == routine.id && 
                             it.subjectCode == routine.subjectCode &&
-                            it.routineId == -1 &&
                             it.id !in usedRecordIds
                         }
-                    }
+                        if (originalRecord != null) usedRecordIds.add(originalRecord.id)
+                        items.add(Triple(routine, originalRecord, null))
 
-                    if (record != null) {
-                        usedRecordIds.add(record.id)
+                        // Replacement Card
+                        val replacementRecord = attendanceRecords.find {
+                            it.routineId == routine.id &&
+                            it.subjectCode == replacement.replacementSubjectCode &&
+                            it.id !in usedRecordIds
+                        }
+                        if (replacementRecord != null) usedRecordIds.add(replacementRecord.id)
+                        items.add(Triple(routine, replacementRecord, replacement.replacementSubjectCode))
+                    } else {
+                        // Regular Card
+                        var record = attendanceRecords.find { it.routineId == routine.id && it.id !in usedRecordIds }
+
+                        if (record == null) {
+                            record = attendanceRecords.find {
+                                it.subjectCode == routine.subjectCode &&
+                                it.routineId == -1 &&
+                                it.id !in usedRecordIds
+                            }
+                        }
+
+                        if (record != null) {
+                            usedRecordIds.add(record.id)
+                        }
+                        items.add(Triple(routine, record, null))
                     }
-                    routine to record
                 }
 
-                // Sorting logic:
-                // 1. Sort by start time initially
-                val sortedByTime = matched.sortedBy { (routine, _) -> 
-                    DateTimeUtils.timeToMinutes(routine.startTime) 
-                }
-
-                // 2. Check if all are marked
-                val allMarked = sortedByTime.all { it.second != null }
-
+                // Sorting
+                val allMarked = items.all { it.second != null }
                 if (allMarked) {
-                    sortedByTime
+                    items.sortedBy { DateTimeUtils.timeToMinutes(it.first.startTime) }
                 } else {
-                    // 3. Move marked cards to the end
-                    val unmarked = sortedByTime.filter { it.second == null }
-                    val marked = sortedByTime.filter { it.second != null }
+                    val unmarked = items.filter { it.second == null }.sortedBy { DateTimeUtils.timeToMinutes(it.first.startTime) }
+                    val marked = items.filter { it.second != null }.sortedBy { DateTimeUtils.timeToMinutes(it.first.startTime) }
                     unmarked + marked
                 }
             }
@@ -601,8 +622,8 @@ fun TodayScreen(
                 modifier = Modifier.weight(1f).padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                items(displayRoutines) { (routine, record) ->
-                    val subject = subjects.find { it.subjectCode == routine.subjectCode }
+                items(displayItems) { (routine, record, replacementCode) ->
+                    val subject = subjects.find { it.subjectCode == (replacementCode ?: routine.subjectCode) }
                     
                     if (subject != null) {
                         TodayClassCard(
@@ -611,8 +632,17 @@ fun TodayScreen(
                             attendanceStatus = record?.status,
                             isEditable = isEditable,
                             isFuture = isFutureDate,
+                            allSubjects = subjects,
+                            isReplacement = replacementCode != null,
+                            hasReplacement = replacements.any { it.routineId == routine.id && replacementCode == null },
                             onMarkAttendance = { status ->
-                                viewModel.markAttendance(routine, status)
+                                viewModel.markAttendance(routine, status, replacementCode)
+                            },
+                            onReplace = { newCode ->
+                                viewModel.replaceClass(routine, dateFormatted, newCode)
+                            },
+                            onUndoReplace = {
+                                viewModel.undoReplacement(routine, dateFormatted)
                             },
                             onStickyNotesClick = {
                                 onNavigateToStickyNotes(subject.subjectCode)
@@ -724,6 +754,11 @@ fun TodayClassCard(
     attendanceStatus: String?,
     isEditable: Boolean,
     isFuture: Boolean,
+    allSubjects: List<SubjectEntity>,
+    isReplacement: Boolean = false,
+    hasReplacement: Boolean = false,
+    onReplace: (String) -> Unit,
+    onUndoReplace: () -> Unit,
     onMarkAttendance: (String) -> Unit,
     onStickyNotesClick: () -> Unit
 ) {
@@ -799,7 +834,53 @@ fun TodayClassCard(
                                 Text(subject.professorName, color = colors.textSecondary, fontSize = 12.sp)
                             }
                         }
-                        Row {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (isEditable && !hasReplacement) {
+                                var showMenu by remember { mutableStateOf(false) }
+                                Box {
+                                    Icon(
+                                        imageVector = Icons.Default.Repeat,
+                                        contentDescription = "Replace",
+                                        tint = PrimaryBlue,
+                                        modifier = Modifier
+                                            .size(20.dp)
+                                            .clickable { showMenu = true }
+                                    )
+                                    DropdownMenu(
+                                        expanded = showMenu,
+                                        onDismissRequest = { showMenu = false },
+                                        containerColor = colors.surfaceVariant
+                                    ) {
+                                        if (isReplacement) {
+                                            DropdownMenuItem(
+                                                text = { Text("Undo Replacement", color = PrimaryRed) },
+                                                onClick = {
+                                                    showMenu = false
+                                                    onUndoReplace()
+                                                }
+                                            )
+                                        } else {
+                                            Text(
+                                                "Replace with:",
+                                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                                fontSize = 12.sp,
+                                                color = colors.textSecondary,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                            allSubjects.filter { it.subjectCode != subject.subjectCode }.forEach { other ->
+                                                DropdownMenuItem(
+                                                    text = { Text(other.name, color = colors.textPrimary) },
+                                                    onClick = {
+                                                        showMenu = false
+                                                        onReplace(other.subjectCode)
+                                                    }
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
+                            }
                             Icon(
                                 imageVector = Icons.Default.StickyNote2, 
                                 contentDescription = "Sticky Notes", 
@@ -808,6 +889,21 @@ fun TodayClassCard(
                                     .size(20.dp)
                                     .clickable { onStickyNotesClick() }
                             )
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        if (isReplacement) {
+                            Surface(
+                                color = PrimaryBlue.copy(alpha = 0.2f),
+                                shape = RoundedCornerShape(4.dp)
+                            ) {
+                                Text(
+                                    "REPLACEMENT",
+                                    color = PrimaryBlue,
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                )
+                            }
                         }
                     }
 
@@ -1889,7 +1985,7 @@ fun AttendanceCalendarGrid(
                                 colors.surfaceVariant
                             }
                             
-                            val contentAlpha = if (isFuture || (!isClassDay && !isHoliday && !isExamDay)) 0.5f else 1.0f
+                            val contentAlpha = if (isFuture || (!isClassDay && !isHoliday && !isExamDay && dayRecords.isEmpty())) 0.5f else 1.0f
 
                             Box(modifier = Modifier.size(36.dp), contentAlignment = Alignment.Center) {
                                 Box(
@@ -1903,7 +1999,7 @@ fun AttendanceCalendarGrid(
                                                 onMarkingRestricted("Attendance cannot be marked on holidays!")
                                             } else if (isExamDay && !classesHeldDuringExam) {
                                                 onMarkingRestricted("Classes suspended due to ${exam?.name ?: "Exam"}")
-                                            } else if (!isClassDay) {
+                                            } else if (!isClassDay && dayRecords.isEmpty()) {
                                                 onMarkingRestricted("No class scheduled for $dayNameFull")
                                             } else {
                                                 onDateClick(date)

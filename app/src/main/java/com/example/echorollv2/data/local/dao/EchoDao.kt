@@ -2,6 +2,7 @@ package com.example.echorollv2.data.local.dao
 
 import androidx.room.*
 import com.example.echorollv2.data.local.entity.AttendanceRecordEntity
+import com.example.echorollv2.data.local.entity.ClassReplacementEntity
 import com.example.echorollv2.data.local.entity.RoutineEntity
 import com.example.echorollv2.data.local.entity.StickyNoteEntity
 import com.example.echorollv2.data.local.entity.ExamEntity
@@ -64,6 +65,9 @@ interface EchoDao {
     @Query("DELETE FROM attendance_records WHERE subjectCode = :subjectCode AND date = :date")
     suspend fun deleteAttendanceRecordsForDate(subjectCode: String, date: String)
 
+    @Query("DELETE FROM attendance_records WHERE subjectCode = :subjectCode AND routineId = :routineId AND date = :date")
+    suspend fun deleteAttendanceRecordForRoutine(subjectCode: String, routineId: Int, date: String)
+
     // --- HOLIDAY QUERIES ---
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertHoliday(holiday: com.example.echorollv2.data.local.entity.HolidayEntity)
@@ -113,4 +117,14 @@ interface EchoDao {
 
     @Query("SELECT * FROM exam_subjects ORDER BY examDate ASC")
     fun getAllExamSubjects(): Flow<List<ExamSubjectEntity>>
+
+    // --- CLASS REPLACEMENT QUERIES ---
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertReplacement(replacement: ClassReplacementEntity)
+
+    @Query("SELECT * FROM class_replacements WHERE date = :date")
+    fun getReplacementsForDate(date: String): Flow<List<ClassReplacementEntity>>
+
+    @Query("DELETE FROM class_replacements WHERE routineId = :routineId AND date = :date")
+    suspend fun deleteReplacement(routineId: Int, date: String)
 }

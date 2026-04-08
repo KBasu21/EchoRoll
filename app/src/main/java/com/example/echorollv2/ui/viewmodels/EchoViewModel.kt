@@ -7,6 +7,7 @@ import com.example.echorollv2.data.local.entity.AttendanceRecordEntity
 import com.example.echorollv2.data.local.entity.RoutineEntity
 import com.example.echorollv2.data.local.entity.StickyNoteEntity
 import com.example.echorollv2.data.local.entity.SubjectEntity
+import com.example.echorollv2.data.local.entity.ClassReplacementEntity
 import com.example.echorollv2.data.local.entity.ExamEntity
 import com.example.echorollv2.data.local.entity.ExamSubjectEntity
 import com.example.echorollv2.data.repository.EchoRepository
@@ -147,6 +148,56 @@ class EchoViewModel(
 
     fun getAllAttendanceRecordsForSubject(subjectCode: String): Flow<List<AttendanceRecordEntity>> {
         return repository.getAllAttendanceRecordsForSubject(subjectCode)
+    }
+
+    // --- CLASS REPLACEMENT ---
+    fun getReplacementsForDate(date: String): Flow<List<ClassReplacementEntity>> {
+        return repository.getReplacementsForDate(date)
+    }
+
+    fun replaceClass(routine: RoutineEntity, date: String, replacementSubjectCode: String) {
+        viewModelScope.launch {
+            val replacement = ClassReplacementEntity(
+                routineId = routine.id,
+                date = date,
+                originalSubjectCode = routine.subjectCode,
+                replacementSubjectCode = replacementSubjectCode
+            )
+            repository.insertReplacement(replacement)
+            
+            // Clean up any existing attendance for the original subject in this slot (e.g. if marked by mistake)
+            repository.deleteAttendanceRecordForRoutine(routine.subjectCode, routine.id, date)
+            
+            // Auto-cancel the original subject's attendance for this slot
+            val cancelRecord = AttendanceRecordEntity(
+                subjectCode = routine.subjectCode,
+                routineId = routine.id,
+                date = date,
+                status = "Cancelled"
+            )
+            repository.insertAttendanceRecord(cancelRecord)
+            repository.recalculateSubjectStats(routine.subjectCode)
+        }
+    }
+
+    fun undoReplacement(routine: RoutineEntity, date: String) {
+        viewModelScope.launch {
+            val replacementsForDate = repository.getReplacementsForDate(date).first()
+            val replacement = replacementsForDate.find { it.routineId == routine.id }
+            
+            if (replacement != null) {
+                // Delete records for both subjects for this specific routine slot
+                repository.deleteAttendanceRecordForRoutine(replacement.originalSubjectCode, routine.id, date)
+                repository.deleteAttendanceRecordForRoutine(replacement.replacementSubjectCode, routine.id, date)
+                
+                // Recalculate stats for both
+                repository.recalculateSubjectStats(replacement.originalSubjectCode)
+                repository.recalculateSubjectStats(replacement.replacementSubjectCode)
+                
+                // Delete the replacement record itself
+                repository.deleteReplacement(routine.id, date)
+            }
+        }
     }
 
     // --- HOLIDAYS ---
@@ -359,29 +410,40 @@ class EchoViewModel(
     }
 
     // --- ATTENDANCE MARKING ---
-    fun markAttendance(routine: RoutineEntity, status: String) {
+    fun markAttendance(routine: RoutineEntity, status: String, replacementSubjectCode: String? = null) {
         viewModelScope.launch {
             val date = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+            
+            val subjectToMark = replacementSubjectCode ?: routine.subjectCode
+            
+            // Delete existing record for this routine slot to avoid duplicates
+            repository.deleteAttendanceRecordForRoutine(subjectToMark, routine.id, date)
+            
             val record = AttendanceRecordEntity(
-                subjectCode = routine.subjectCode,
+                subjectCode = subjectToMark,
                 routineId = routine.id,
                 date = date,
                 status = status
             )
             repository.insertAttendanceRecord(record)
 
-            // Update subject counts
-            if (status == "Present" || status == "Absent") {
-                val subject = repository.getSubjectByCode(routine.subjectCode)
-                subject?.let {
-                    val updatedSubject = if (status == "Present") {
-                        it.copy(attended = it.attended + 1)
-                    } else {
-                        it.copy(missed = it.missed + 1)
-                    }
-                    repository.updateSubject(updatedSubject)
-                }
+            // If it was a replacement, ensure the original is marked as Cancelled
+            if (replacementSubjectCode != null) {
+                // Delete existing record for original before marking as Cancelled
+                repository.deleteAttendanceRecordForRoutine(routine.subjectCode, routine.id, date)
+                
+                val originalCancelRecord = AttendanceRecordEntity(
+                    subjectCode = routine.subjectCode,
+                    routineId = routine.id,
+                    date = date,
+                    status = "Cancelled"
+                )
+                repository.insertAttendanceRecord(originalCancelRecord)
+                repository.recalculateSubjectStats(routine.subjectCode)
             }
+
+            // Always recalculate stats to ensure consistency
+            repository.recalculateSubjectStats(subjectToMark)
         }
     }
 

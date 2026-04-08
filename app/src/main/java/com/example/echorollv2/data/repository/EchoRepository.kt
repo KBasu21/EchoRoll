@@ -2,6 +2,7 @@ package com.example.echorollv2.data.repository
 
 import com.example.echorollv2.data.local.dao.EchoDao
 import com.example.echorollv2.data.local.entity.AttendanceRecordEntity
+import com.example.echorollv2.data.local.entity.ClassReplacementEntity
 import com.example.echorollv2.data.local.entity.ExamEntity
 import com.example.echorollv2.data.local.entity.ExamSubjectEntity
 import com.example.echorollv2.data.local.entity.RoutineEntity
@@ -76,6 +77,10 @@ class EchoRepository(private val dao: EchoDao) {
         dao.deleteAttendanceRecordsForDate(subjectCode, date)
     }
 
+    suspend fun deleteAttendanceRecordForRoutine(subjectCode: String, routineId: Int, date: String) {
+        dao.deleteAttendanceRecordForRoutine(subjectCode, routineId, date)
+    }
+
     suspend fun recalculateSubjectStats(subjectCode: String) {
         val records = dao.getAllAttendanceRecordsForSubject(subjectCode).first()
         val subject = dao.getSubjectByCode(subjectCode)
@@ -142,5 +147,18 @@ class EchoRepository(private val dao: EchoDao) {
 
     suspend fun deleteExamSubject(subject: ExamSubjectEntity) {
         dao.deleteExamSubject(subject)
+    }
+
+    // Class Replacements
+    suspend fun insertReplacement(replacement: ClassReplacementEntity) {
+        dao.insertReplacement(replacement)
+    }
+
+    fun getReplacementsForDate(date: String): Flow<List<ClassReplacementEntity>> {
+        return dao.getReplacementsForDate(date)
+    }
+
+    suspend fun deleteReplacement(routineId: Int, date: String) {
+        dao.deleteReplacement(routineId, date)
     }
 }
