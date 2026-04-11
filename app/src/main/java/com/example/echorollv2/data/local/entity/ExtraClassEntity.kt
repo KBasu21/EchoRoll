@@ -1,0 +1,11 @@
+package com.example.echorollv2.data.local.entity
+
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+
+@Entity(tableName = "extra_classes")
+data class ExtraClassEntity(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val subjectCode: String,
+    val date: String // Format: yyyy-MM-dd
+)

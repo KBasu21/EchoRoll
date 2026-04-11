@@ -8,6 +8,7 @@ import com.example.echorollv2.data.local.entity.StickyNoteEntity
 import com.example.echorollv2.data.local.entity.ExamEntity
 import com.example.echorollv2.data.local.entity.ExamSubjectEntity
 import com.example.echorollv2.data.local.entity.SubjectEntity
+import com.example.echorollv2.data.local.entity.ExtraClassEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -127,4 +128,14 @@ interface EchoDao {
 
     @Query("DELETE FROM class_replacements WHERE routineId = :routineId AND date = :date")
     suspend fun deleteReplacement(routineId: Int, date: String)
+
+    // --- EXTRA CLASS QUERIES ---
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertExtraClass(extraClass: ExtraClassEntity)
+
+    @Delete
+    suspend fun deleteExtraClass(extraClass: ExtraClassEntity)
+
+    @Query("SELECT * FROM extra_classes WHERE date = :date")
+    fun getExtraClassesForDate(date: String): Flow<List<ExtraClassEntity>>
 }

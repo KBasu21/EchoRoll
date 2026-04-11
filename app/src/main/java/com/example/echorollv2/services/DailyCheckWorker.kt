@@ -32,14 +32,6 @@ class DailyCheckWorker(
         val todayHoliday = holidays.find { it.date == dateStr }
         if (todayHoliday != null) {
             android.util.Log.d("DailyCheckWorker", "Today is a holiday: ${todayHoliday.name}. Skipping class alarms.")
-            if (!silentCheck) {
-                NotificationHelper.sendNotification(
-                    applicationContext,
-                    "Holiday Vibes! \uD83C\uDF89",
-                    com.example.echorollv2.utils.HumorUtils.getHolidayMessage(),
-                    1001
-                )
-            }
             return Result.success() 
         }
 
@@ -63,40 +55,6 @@ class DailyCheckWorker(
         
         routines.forEach { routine ->
             scheduleAttendanceReminder(applicationContext, alarmManager, routine, repo)
-        }
-
-        // Only send general alerts if this is NOT a silent check
-        if (!silentCheck) {
-            // 3. Check for low attendance (< 75%)
-            val subjects = repo.allSubjects.first()
-            subjects.forEach { subject ->
-                val total = subject.attended + subject.missed
-                val percentage = if (total > 0) (subject.attended.toFloat() / total) * 100 else 100f
-                if (percentage < 75f) {
-                    NotificationHelper.sendNotification(
-                        applicationContext,
-                        "Danger Noodle Alert! \uD83D\uDEA8",
-                        com.example.echorollv2.utils.HumorUtils.getLowAttendanceMessage(),
-                        subject.subjectCode.hashCode()
-                    )
-                }
-            }
-
-            // 4. Unused Features (Sticky notes)
-            try {
-                val hasNotes = db.openHelper.readableDatabase.query("SELECT COUNT(*) FROM sticky_notes").use { cursor ->
-                    cursor.moveToFirst()
-                    cursor.getInt(0) > 0
-                }
-                if (!hasNotes) {
-                    NotificationHelper.sendNotification(
-                        applicationContext,
-                        "Naked Brain \uD83E\uDDE0",
-                        "You haven't used Sticky Notes yet! Are you keeping all those thoughts in your head? Write them down!",
-                        1002
-                    )
-                }
-            } catch (e: Exception) {}
         }
 
         return Result.success()

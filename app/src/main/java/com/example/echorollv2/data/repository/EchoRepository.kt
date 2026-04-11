@@ -8,6 +8,7 @@ import com.example.echorollv2.data.local.entity.ExamSubjectEntity
 import com.example.echorollv2.data.local.entity.RoutineEntity
 import com.example.echorollv2.data.local.entity.StickyNoteEntity
 import com.example.echorollv2.data.local.entity.SubjectEntity
+import com.example.echorollv2.data.local.entity.ExtraClassEntity
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 
@@ -160,5 +161,18 @@ class EchoRepository(private val dao: EchoDao) {
 
     suspend fun deleteReplacement(routineId: Int, date: String) {
         dao.deleteReplacement(routineId, date)
+    }
+
+    // Extra Classes
+    suspend fun insertExtraClass(extraClass: ExtraClassEntity) {
+        dao.insertExtraClass(extraClass)
+    }
+
+    suspend fun deleteExtraClass(extraClass: ExtraClassEntity) {
+        dao.deleteExtraClass(extraClass)
+    }
+
+    fun getExtraClassesForDate(date: String): Flow<List<ExtraClassEntity>> {
+        return dao.getExtraClassesForDate(date)
     }
 }

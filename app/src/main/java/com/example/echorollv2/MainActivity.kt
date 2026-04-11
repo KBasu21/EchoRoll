@@ -119,6 +119,7 @@ import com.example.echorollv2.ui.theme.PrimaryGreen
 import com.example.echorollv2.ui.theme.PrimaryOrange
 import com.example.echorollv2.ui.theme.PrimaryPurple
 import com.example.echorollv2.ui.theme.PrimaryRed
+
 import com.example.echorollv2.ui.viewmodels.EchoViewModel
 import com.example.echorollv2.ui.viewmodels.EchoViewModelFactory
 import com.example.echorollv2.utils.DateTimeUtils
@@ -498,6 +499,7 @@ fun TodayScreen(
     val routines by viewModel.allRoutines.collectAsState()
     val attendanceRecords by viewModel.getAttendanceRecordsForDate(dateFormatted).collectAsState(initial = emptyList())
     val replacements by viewModel.getReplacementsForDate(dateFormatted).collectAsState(initial = emptyList())
+    val extraClasses by viewModel.getExtraClassesForDate(dateFormatted).collectAsState(initial = emptyList())
     val subjects by viewModel.allSubjects.collectAsState()
     val allExamSubjects by viewModel.allExamSubjects.collectAsState()
     val allExams by viewModel.allExams.collectAsState()
@@ -539,6 +541,39 @@ fun TodayScreen(
         val allHolidays by viewModel.allHolidays.collectAsState()
         val todayHoliday = allHolidays.find { it.date == dateFormatted }
 
+        if (isEditable) {
+            var showAddExtraClass by remember { mutableStateOf(false) }
+            Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), contentAlignment = Alignment.CenterEnd) {
+                androidx.compose.foundation.layout.Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.clickable { showAddExtraClass = true }
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Add Extra Class", tint = PrimaryBlue, modifier = Modifier.size(20.dp))
+                    Text("Extra Class", color = PrimaryBlue, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                }
+
+                DropdownMenu(
+                    expanded = showAddExtraClass,
+                    onDismissRequest = { showAddExtraClass = false },
+                    containerColor = colors.surfaceVariant
+                ) {
+                    if (subjects.isEmpty()) {
+                        DropdownMenuItem(text = { Text("No Subjects", color = colors.textSecondary) }, onClick = { showAddExtraClass = false })
+                    } else {
+                        subjects.forEach { sub ->
+                            DropdownMenuItem(
+                                text = { Text(sub.name, color = colors.textPrimary) },
+                                onClick = {
+                                    showAddExtraClass = false
+                                    viewModel.addExtraClass(sub.subjectCode, dateFormatted)
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
         if (todayHoliday != null) {
             Box(modifier = Modifier.weight(1f).fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -548,7 +583,7 @@ fun TodayScreen(
                     Text(com.example.echorollv2.utils.HumorUtils.getHolidayMessage(), color = colors.textSecondary, fontSize = 18.sp, textAlign = TextAlign.Center)
                 }
             }
-        } else if (todayRoutines.isEmpty()) {
+        } else if (todayRoutines.isEmpty() && extraClasses.isEmpty()) {
             Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                 Text("No classes scheduled!", color = colors.textSecondary)
             }
@@ -562,7 +597,7 @@ fun TodayScreen(
                 }
             }
         } else {
-            val displayItems = remember(todayRoutines, attendanceRecords, replacements) {
+            val displayItems = remember(todayRoutines, attendanceRecords, replacements, extraClasses) {
                 val items = mutableListOf<Triple<RoutineEntity, AttendanceRecordEntity?, String?>>()
                 val usedRecordIds = mutableSetOf<Int>()
 
@@ -606,6 +641,23 @@ fun TodayScreen(
                     }
                 }
 
+                // Add Extra Classes
+                extraClasses.forEach { extraClass ->
+                    val pseudoRoutine = RoutineEntity(
+                        id = -(extraClass.id),
+                        subjectCode = extraClass.subjectCode,
+                        dayOfWeek = dayName,
+                        startTime = "Extra",
+                        endTime = "Class"
+                    )
+                    
+                    val record = attendanceRecords.find { 
+                        it.routineId == pseudoRoutine.id 
+                    }
+                    if (record != null) usedRecordIds.add(record.id)
+                    items.add(Triple(pseudoRoutine, record, null))
+                }
+
                 // Sorting
                 val allMarked = items.all { it.second != null }
                 if (allMarked) {
@@ -646,7 +698,15 @@ fun TodayScreen(
                             },
                             onStickyNotesClick = {
                                 onNavigateToStickyNotes(subject.subjectCode)
-                            }
+                            },
+                            onDeleteExtraClass = if (routine.id < 0) {
+                                {
+                                    val extraClassFind = extraClasses.find { it.id == -(routine.id) }
+                                    if (extraClassFind != null) {
+                                        viewModel.deleteExtraClass(extraClassFind)
+                                    }
+                                }
+                            } else null
                         )
                     }
                 }
@@ -709,7 +769,9 @@ fun CalendarHeader(
             ) {
                 items(dates) { date ->
                     val dateStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(date)
+                    val todayDateStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(java.util.Date())
                     val isSelected = dateStr == SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(selectedDate)
+                    val isToday = dateStr == todayDateStr
                     val dayNum = SimpleDateFormat("d", Locale.getDefault()).format(date)
                     val dayNameStr = SimpleDateFormat("EEE", Locale.getDefault()).format(date)
                     val isExamDate = allExamSubjects.any { it.examDate == dateStr }
@@ -719,26 +781,28 @@ fun CalendarHeader(
                         modifier = Modifier.clickable { onDateSelected(date) }.padding(horizontal = 4.dp)
                     ) {
                         if (isSelected) {
+                            val bgColor = if (isToday) PrimaryBlue else PrimaryGreen
                             Box(
-                                modifier = Modifier.size(40.dp).background(PrimaryBlue, CircleShape),
+                                modifier = Modifier.size(40.dp).background(bgColor, CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(dayNum, color = colors.textPrimary, fontWeight = FontWeight.Bold)
                             }
                             Spacer(modifier = Modifier.height(4.dp))
-                            Text(dayNameStr, color = PrimaryOrange, fontSize = 12.sp)
+                            Text(dayNameStr, color = if (isToday) PrimaryBlue else PrimaryGreen, fontSize = 12.sp)
                         } else {
-                            val textColor = if (isExamDate) ExamPurple else colors.textPrimary
+                            val textColor = if (isExamDate) ExamPurple else if (isToday) PrimaryBlue else colors.textPrimary
                             Box(
                                 modifier = Modifier
                                     .size(40.dp)
-                                    .then(if (isExamDate) Modifier.border(1.dp, ExamPurple, CircleShape) else Modifier),
+                                    .then(if (isToday) Modifier.background(PrimaryBlue.copy(alpha = 0.2f), CircleShape) else Modifier)
+                                    .then(if (isExamDate) Modifier.border(1.dp, ExamPurple, CircleShape) else if (isToday) Modifier.border(1.dp, PrimaryBlue, CircleShape) else Modifier),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text(dayNum, color = textColor, fontSize = 16.sp, fontWeight = if (isExamDate) FontWeight.Bold else FontWeight.Normal)
+                                Text(dayNum, color = textColor, fontSize = 16.sp, fontWeight = if (isExamDate || isToday) FontWeight.Bold else FontWeight.Normal)
                             }
                             Spacer(modifier = Modifier.height(4.dp))
-                            Text(dayNameStr, color = if (isExamDate) ExamPurple else Color.Gray, fontSize = 12.sp)
+                            Text(dayNameStr, color = if (isExamDate) ExamPurple else if (isToday) PrimaryBlue else Color.Gray, fontSize = 12.sp)
                         }
                     }
                 }
@@ -760,7 +824,8 @@ fun TodayClassCard(
     onReplace: (String) -> Unit,
     onUndoReplace: () -> Unit,
     onMarkAttendance: (String) -> Unit,
-    onStickyNotesClick: () -> Unit
+    onStickyNotesClick: () -> Unit,
+    onDeleteExtraClass: (() -> Unit)? = null
 ) {
     val colors = LocalAppColors.current
     val attended = subject.attended
@@ -889,6 +954,17 @@ fun TodayClassCard(
                                     .size(20.dp)
                                     .clickable { onStickyNotesClick() }
                             )
+                            if (onDeleteExtraClass != null) {
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = "Delete Extra Class",
+                                    tint = PrimaryRed,
+                                    modifier = Modifier
+                                        .size(20.dp)
+                                        .clickable { onDeleteExtraClass.invoke() }
+                                )
+                            }
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                         if (isReplacement) {
@@ -899,6 +975,19 @@ fun TodayClassCard(
                                 Text(
                                     "REPLACEMENT",
                                     color = PrimaryBlue,
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                )
+                            }
+                        } else if (onDeleteExtraClass != null) {
+                            Surface(
+                                color = PrimaryGreen.copy(alpha = 0.2f),
+                                shape = RoundedCornerShape(4.dp)
+                            ) {
+                                Text(
+                                    "EXTRA CLASS",
+                                    color = PrimaryGreen,
                                     fontSize = 9.sp,
                                     fontWeight = FontWeight.Bold,
                                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
@@ -1195,7 +1284,7 @@ fun BottomNavigationBar(currentScreen: String, onScreenSelected: (String) -> Uni
                 selected = currentScreen == item.title,
                 onClick = { onScreenSelected(item.title) },
                 icon = { Icon(item.icon, contentDescription = item.title, modifier = Modifier.size(24.dp)) },
-                label = { Text(item.title, fontSize = 10.sp) },
+                label = { Text(item.title, fontSize = 9.sp, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, softWrap = false) },
                 colors = NavigationBarItemDefaults.colors(
                     selectedIconColor = Color(0xFF4A90E2),
                     selectedTextColor = Color(0xFF4A90E2),
@@ -1515,7 +1604,7 @@ fun SubjectCard(
                             Icon(
                                 Icons.Default.StickyNote2, 
                                 contentDescription = "Sticky Notes", 
-                                tint = Color(0xFFF1C40F), 
+                                tint = PrimaryOrange, 
                                 modifier = Modifier
                                     .size(22.dp)
                                     .clickable { onStickyNotesClick() }
@@ -1524,7 +1613,7 @@ fun SubjectCard(
                             Icon(
                                 Icons.Default.CalendarToday, 
                                 contentDescription = "Calendar", 
-                                tint = Color(0xFF2ECC71), 
+                                tint = PrimaryGreen, 
                                 modifier = Modifier
                                     .size(22.dp)
                                     .clickable { onCalendarClick() }

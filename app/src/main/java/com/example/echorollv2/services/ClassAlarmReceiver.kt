@@ -28,22 +28,6 @@ class ClassAlarmReceiver : BroadcastReceiver() {
                 routineId = routineId
             )
 
-            // 2. Schedule Follow-up Worker in 15 minutes
-            val workRequest = androidx.work.OneTimeWorkRequestBuilder<FollowUpWorker>()
-                .setInitialDelay(15, java.util.concurrent.TimeUnit.MINUTES)
-                .setInputData(
-                    androidx.work.Data.Builder()
-                        .putInt("ROUTINE_ID", routineId)
-                        .putString("SUBJECT_CODE", subjectCode)
-                        .build()
-                )
-                .build()
-            
-            androidx.work.WorkManager.getInstance(context).enqueueUniqueWork(
-                "FollowUp_${routineId}",
-                androidx.work.ExistingWorkPolicy.REPLACE,
-                workRequest
-            )
         }
     }
 }

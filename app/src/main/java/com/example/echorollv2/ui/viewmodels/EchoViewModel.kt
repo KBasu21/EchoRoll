@@ -9,6 +9,7 @@ import com.example.echorollv2.data.local.entity.StickyNoteEntity
 import com.example.echorollv2.data.local.entity.SubjectEntity
 import com.example.echorollv2.data.local.entity.ClassReplacementEntity
 import com.example.echorollv2.data.local.entity.ExamEntity
+import com.example.echorollv2.data.local.entity.ExtraClassEntity
 import com.example.echorollv2.data.local.entity.ExamSubjectEntity
 import com.example.echorollv2.data.repository.EchoRepository
 import com.example.echorollv2.ui.screens.setup.DaySchedule
@@ -197,6 +198,27 @@ class EchoViewModel(
                 // Delete the replacement record itself
                 repository.deleteReplacement(routine.id, date)
             }
+        }
+    }
+
+    // --- EXTRA CLASSES ---
+    fun getExtraClassesForDate(date: String): Flow<List<ExtraClassEntity>> {
+        return repository.getExtraClassesForDate(date)
+    }
+
+    fun addExtraClass(subjectCode: String, date: String) {
+        viewModelScope.launch {
+            repository.insertExtraClass(ExtraClassEntity(subjectCode = subjectCode, date = date))
+        }
+    }
+
+    fun deleteExtraClass(extraClass: ExtraClassEntity) {
+        viewModelScope.launch {
+            // Also delete any logged attendance for this specific extra class slot
+            val routineId = -(extraClass.id)
+            repository.deleteAttendanceRecordForRoutine(extraClass.subjectCode, routineId, extraClass.date)
+            repository.deleteExtraClass(extraClass)
+            repository.recalculateSubjectStats(extraClass.subjectCode)
         }
     }
 

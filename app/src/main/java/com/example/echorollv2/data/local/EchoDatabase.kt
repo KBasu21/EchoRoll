@@ -13,6 +13,7 @@ import com.example.echorollv2.data.local.entity.HolidayEntity
 import com.example.echorollv2.data.local.entity.SubjectEntity
 import com.example.echorollv2.data.local.entity.ExamEntity
 import com.example.echorollv2.data.local.entity.ExamSubjectEntity
+import com.example.echorollv2.data.local.entity.ExtraClassEntity
 
 @Database(
     entities = [
@@ -23,9 +24,10 @@ import com.example.echorollv2.data.local.entity.ExamSubjectEntity
         HolidayEntity::class,
         ExamEntity::class,
         ExamSubjectEntity::class,
-        ClassReplacementEntity::class
+        ClassReplacementEntity::class,
+        ExtraClassEntity::class
     ],
-    version = 7,
+    version = 8,
     exportSchema = false
 )
 abstract class EchoDatabase : RoomDatabase() {
@@ -56,13 +58,19 @@ abstract class EchoDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_7_8 = object : androidx.room.migration.Migration(7, 8) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE IF NOT EXISTS `extra_classes` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `subjectCode` TEXT NOT NULL, `date` TEXT NOT NULL)")
+            }
+        }
+
         fun getDatabase(context: Context): EchoDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     EchoDatabase::class.java,
                     "echoroll_v2_database"
-                ).addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7).build()
+                ).addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8).build()
                 INSTANCE = instance
                 instance
             }
